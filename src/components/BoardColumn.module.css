@@ -1,0 +1,82 @@
+.column {
+  min-width: 280px;
+  max-width: 280px;
+  background: var(--board-column);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 140px);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 0.75rem 0.5rem;
+}
+
+.title {
+  margin: 0;
+  font-size: 0.95rem;
+  flex: 1;
+}
+
+.count {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  background: white;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+}
+
+.menu {
+  display: flex;
+  gap: 0.15rem;
+}
+
+.iconBtn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0.15rem 0.25rem;
+  border-radius: 4px;
+}
+
+.iconBtn:hover {
+  background: rgb(255 255 255 / 60%);
+}
+
+.dropZone {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-height: 80px;
+  border-radius: 8px;
+  margin: 0 0.35rem;
+}
+
+.over {
+  background: var(--accent-soft);
+}
+
+.add {
+  margin: 0.5rem 0.75rem 0.75rem;
+  border: 1px dashed var(--border);
+  background: transparent;
+  border-radius: 8px;
+  padding: 0.45rem;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.add:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}

@@ -1,0 +1,29 @@
+---
+description: AivibeBoard — стек, структура и границы MVP (канбан + ИИ + Telegram + база знаний)
+alwaysApply: true
+---
+
+# AivibeBoard
+
+Одностраничное приложение: Vite + React 18 + TypeScript. Без React Router — sidebar + модалки. Персистентность: **IndexedDB** (`src/services/storage.ts`); `localStorage` только для мелких настроек. UI и сообщения об ошибках — **русский**. Бренд в header: **AivibeBoard** + имя проекта.
+
+## Структура
+
+- `src/types/` — `User`, `Column`, `Task`, `KnowledgeDoc`, `TelegramInbound`, `AiDecompositionDraft`, `ProjectSettings`
+- `src/services/` — `storage`, `ai`, `knowledge`, `telegram`
+- `src/hooks/` — `useBoard`, `useKnowledge`, `useAiDecompose`
+- `src/components/` — Board, TaskModal, KnowledgePanel, AiPanel, TelegramInbox, Sidebar
+
+Секреты только через `import.meta.env` (`VITE_OPENAI_*`); не коммитить `.env`.
+
+## Поведение фич
+
+- **ИИ:** разбиение эпика → preview → эпик-карточка в «Бэклог» + дочерние задачи с `parentTaskId`, `source: 'ai'`. Контекст из выбранных документов базы знаний.
+- **Telegram:** inbox в IndexedDB, `ingestTelegramMessage`; без ключа бота в SPA — mock/симуляция OK.
+- **База знаний:** md/txt приоритет; pdf — метаданные + предупреждение если текст не извлечён.
+
+## Не расширять без явного запроса
+
+Auth, multi-project, WebSocket sync, embeddings/RAG, production API в v1.
+
+Полная спецификация генерации: [CURSOR_PROMPT.md](../../CURSOR_PROMPT.md).

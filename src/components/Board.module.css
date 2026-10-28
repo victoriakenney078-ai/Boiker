@@ -1,0 +1,34 @@
+.boardWrap {
+  overflow: hidden;
+  height: 100%;
+}
+
+.board {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  overflow-x: auto;
+  align-items: flex-start;
+  height: 100%;
+}
+
+.addColumn {
+  min-width: 200px;
+  border: 1px dashed var(--border);
+  background: transparent;
+  border-radius: 12px;
+  padding: 1rem;
+  cursor: pointer;
+  color: var(--text-muted);
+  align-self: flex-start;
+}
+
+.addColumn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.overlay {
+  width: 260px;
+  pointer-events: none;
+}
