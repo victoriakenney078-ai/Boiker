@@ -1,7 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { AppSection, Task } from './types';
 import { AppDataProvider, useAppData } from './hooks/useAppData';
+import { supabase } from './services/supabase';
 import { LandingPage } from './components/landing/LandingPage';
+import { AuthPage } from './components/landing/AuthPage';
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
 import { Board } from './components/Board';
@@ -13,7 +15,13 @@ import { TeamPanel } from './components/TeamPanel';
 import { SettingsPanel } from './components/SettingsPanel';
 import styles from './App.module.css';
 
-function AppShell({ onBackToLanding }: { onBackToLanding: () => void }) {
+function AppShell({
+  onBackToLanding,
+  onSignOut,
+}: {
+  onBackToLanding: () => void;
+  onSignOut: () => void;
+}) {
   const { settings, tasks, columns, users, telegram, loading, refresh } = useAppData();
   const [section, setSection] = useState<AppSection>('board');
   const [search, setSearch] = useState('');
@@ -57,6 +65,7 @@ function AppShell({ onBackToLanding }: { onBackToLanding: () => void }) {
         onSearchChange={setSearch}
         onAddTask={() => openTask(null, backlogId)}
         onBackToLanding={onBackToLanding}
+        onSignOut={onSignOut}
       />
       <div className={styles.body}>
         <Sidebar active={section} onChange={setSection} telegramUnread={telegramUnread} />
@@ -84,16 +93,78 @@ function AppShell({ onBackToLanding }: { onBackToLanding: () => void }) {
   );
 }
 
+type AppView = 'landing' | 'auth' | 'app';
+
 export default function App() {
-  const [view, setView] = useState<'landing' | 'app'>('landing');
+  const [view, setView] = useState<AppView>('landing');
+  const [ready, setReady] = useState(false);
+  const [signedIn, setSignedIn] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+
+    void supabase.auth.getSession().then(({ data }) => {
+      if (!active) return;
+      const hasSession = Boolean(data.session);
+      setSignedIn(hasSession);
+      if (hasSession) setView('app');
+      setReady(true);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      setSignedIn(Boolean(session));
+      if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session) {
+        setView('app');
+      }
+      if (event === 'SIGNED_OUT') setView('landing');
+    });
+
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  async function signOut() {
+    await supabase.auth.signOut();
+    setView('landing');
+  }
+
+  if (!ready) {
+    return (
+      <div className={styles.loading}>
+        <p>Загрузка…</p>
+      </div>
+    );
+  }
+
+  if (view === 'auth') {
+    return (
+      <AuthPage
+        onBack={() => setView('landing')}
+        onSuccess={() => {
+          setSignedIn(true);
+          setView('app');
+        }}
+      />
+    );
+  }
 
   if (view === 'landing') {
-    return <LandingPage onOpenApp={() => setView('app')} />;
+    return (
+      <LandingPage
+        signedIn={signedIn}
+        onOpenAuth={() => setView('auth')}
+        onOpenApp={() => setView('app')}
+      />
+    );
   }
 
   return (
     <AppDataProvider>
-      <AppShell onBackToLanding={() => setView('landing')} />
+      <AppShell onBackToLanding={() => setView('landing')} onSignOut={() => void signOut()} />
     </AppDataProvider>
   );
 }

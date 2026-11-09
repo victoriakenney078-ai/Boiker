@@ -5,16 +5,17 @@ alwaysApply: true
 
 # AivibeBoard
 
-Одностраничное приложение: Vite + React 18 + TypeScript. Без React Router — sidebar + модалки. Персистентность: **IndexedDB** (`src/services/storage.ts`); `localStorage` только для мелких настроек. UI и сообщения об ошибках — **русский**. Бренд в header: **AivibeBoard** + имя проекта.
+Одностраничное приложение: Vite + React 18 + TypeScript. Без React Router: лендинг, форма входа и доска переключаются состоянием в `App.tsx`; внутри доски — sidebar + модалки. Персистентность доски: **IndexedDB** (`src/services/storage.ts`); сессия — **Supabase Auth** (`src/services/supabase.ts`). UI и сообщения об ошибках — **русский**. Бренд в header: **AivibeBoard** + имя проекта.
 
 ## Структура
 
 - `src/types/` — `User`, `Column`, `Task`, `KnowledgeDoc`, `TelegramInbound`, `AiDecompositionDraft`, `ProjectSettings`
-- `src/services/` — `storage`, `ai`, `knowledge`, `telegram`
-- `src/hooks/` — `useBoard`, `useKnowledge`, `useAiDecompose`
+- `src/services/` — `storage`, `ai`, `knowledge`, `telegram`, `supabase`
+- `src/hooks/` — `useAppData`, `useAiDecompose`
 - `src/components/` — Board, TaskModal, KnowledgePanel, AiPanel, TelegramInbox, Sidebar
+- `src/components/landing/` — `LandingPage`, `AuthPage` (email + пароль)
 
-Секреты только через `import.meta.env` (`VITE_OPENAI_*`); не коммитить `.env`.
+Секреты только через `import.meta.env` (`VITE_OPENAI_*`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`); не коммитить `.env`. Без URL и anon-ключа клиент не стартует.
 
 ## Поведение фич
 
@@ -24,6 +25,6 @@ alwaysApply: true
 
 ## Не расширять без явного запроса
 
-Auth, multi-project, WebSocket sync, embeddings/RAG, production API в v1.
+Вход уже есть: email и пароль через Supabase, без ролей. Не добавлять роли, multi-project, WebSocket sync, embeddings/RAG и production API без явного запроса. Доска не привязана к пользователю Supabase — данные остаются в IndexedDB браузера.
 
 Полная спецификация генерации: [CURSOR_PROMPT.md](../../CURSOR_PROMPT.md).

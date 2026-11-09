@@ -6,6 +6,7 @@ interface Props {
   onSearchChange: (v: string) => void;
   onAddTask: () => void;
   onBackToLanding?: () => void;
+  onSignOut?: () => void;
 }
 
 export function Header({
@@ -14,6 +15,7 @@ export function Header({
   onSearchChange,
   onAddTask,
   onBackToLanding,
+  onSignOut,
 }: Props) {
   return (
     <header className={styles.header}>
@@ -38,6 +40,11 @@ export function Header({
         <button type="button" className={styles.primary} onClick={onAddTask}>
           + Задача
         </button>
+        {onSignOut ? (
+          <button type="button" className={styles.signOut} onClick={onSignOut}>
+            Выйти
+          </button>
+        ) : null}
       </div>
     </header>
   );
