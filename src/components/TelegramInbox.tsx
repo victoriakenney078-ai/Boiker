@@ -1,20 +1,18 @@
 import { useState } from 'react';
-import type { Task, TelegramInbound } from '../types';
-import { getBacklogColumnId } from '../services/seed';
-import { putTask } from '../services/storage';
-import { simulateTelegramMessage, updateTelegramItem } from '../services/telegram';
+import type { TelegramInbound } from '../types';
+import {
+  createTaskFromInbound,
+  simulateTelegramMessage,
+  updateTelegramItem,
+} from '../services/telegram';
 import { useAppData } from '../hooks/useAppData';
 import { useI18n } from '../i18n';
 import styles from './Panel.module.css';
 
-function now() {
-  return new Date().toISOString();
-}
-
 export function TelegramInbox() {
   const { telegram, tasks, refresh } = useAppData();
   const { t, dateLocale } = useI18n();
-  const [linkTaskId, setLinkTaskId] = useState<string>('');
+  const [linkTaskId, setLinkTaskId] = useState('');
 
   async function handleSimulate() {
     await simulateTelegramMessage();
@@ -22,35 +20,11 @@ export function TelegramInbox() {
   }
 
   async function createTaskFrom(item: TelegramInbound) {
-    const backlogId = await getBacklogColumnId();
-    if (!backlogId) {
+    const taskId = await createTaskFromInbound(item);
+    if (!taskId) {
       window.alert(t('telegram.noBacklog'));
       return;
     }
-    const ts = now();
-    const title =
-      item.text.length > 80 ? `${item.text.slice(0, 77)}…` : item.text;
-    const taskId = crypto.randomUUID();
-    const task: Task = {
-      id: taskId,
-      columnId: backlogId,
-      title,
-      description: item.text,
-      assigneeId: null,
-      priority: 'medium',
-      labels: ['Telegram'],
-      subtasks: [],
-      parentTaskId: null,
-      source: 'telegram',
-      createdAt: ts,
-      updatedAt: ts,
-    };
-    await putTask(task);
-    await updateTelegramItem({
-      ...item,
-      processed: true,
-      linkedTaskId: taskId,
-    });
     await refresh();
   }
 
@@ -89,7 +63,7 @@ export function TelegramInbox() {
             {item.linkedTaskId && (
               <p className={styles.hint}>
                 {t('telegram.linkedTo')}{' '}
-                {tasks.find((t) => t.id === item.linkedTaskId)?.title ?? item.linkedTaskId}
+                {tasks.find((task) => task.id === item.linkedTaskId)?.title ?? item.linkedTaskId}
               </p>
             )}
             {!item.processed && (
@@ -106,9 +80,9 @@ export function TelegramInbox() {
                   aria-label={t('telegram.linkAria')}
                 >
                   <option value="">{t('telegram.linkToTask')}</option>
-                  {tasks.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.title}
+                  {tasks.map((task) => (
+                    <option key={task.id} value={task.id}>
+                      {task.title}
                     </option>
                   ))}
                 </select>

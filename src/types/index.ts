@@ -93,16 +93,3 @@ export type AppSection =
   | 'settings';
 
 export const PRIORITIES: Priority[] = ['low', 'medium', 'high', 'critical'];
-
-export const PRIORITY_LABELS: Record<Priority, string> = {
-  low: 'Низкий',
-  medium: 'Средний',
-  high: 'Высокий',
-  critical: 'Критический',
-};
-
-export const SOURCE_LABELS: Record<TaskSource, string> = {
-  manual: 'Вручную',
-  ai: 'ИИ',
-  telegram: 'Telegram',
-};

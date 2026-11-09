@@ -33,5 +33,5 @@ export function useAiDecompose() {
     [users],
   );
 
-  return { loading, error, draft, setDraft, run };
+  return { loading, error, setError, draft, setDraft, run };
 }

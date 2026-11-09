@@ -2,22 +2,9 @@ import { useEffect, useState } from 'react';
 import type { Priority, Task, TaskSource, User } from '../types';
 import { PRIORITIES } from '../types';
 import { deleteTask, putTask } from '../services/storage';
-import { useI18n } from '../i18n';
-import type { MessageKey } from '../i18n';
+import { isoNow } from '../lib/isoNow';
+import { PRIORITY_KEYS, SOURCE_KEYS, useI18n } from '../i18n';
 import styles from './TaskModal.module.css';
-
-const PRIORITY_KEYS: Record<Priority, MessageKey> = {
-  low: 'priority.low',
-  medium: 'priority.medium',
-  high: 'priority.high',
-  critical: 'priority.critical',
-};
-
-const SOURCE_KEYS: Record<TaskSource, MessageKey> = {
-  manual: 'source.manual',
-  ai: 'source.ai',
-  telegram: 'source.telegram',
-};
 
 interface Props {
   task: Task | null;
@@ -29,12 +16,8 @@ interface Props {
   onSaved: () => void;
 }
 
-function now() {
-  return new Date().toISOString();
-}
-
 function emptyTask(columnId: string): Task {
-  const ts = now();
+  const ts = isoNow();
   return {
     id: crypto.randomUUID(),
     columnId,
@@ -94,7 +77,7 @@ export function TaskModal({
       .split(',')
       .map((s) => s.trim())
       .filter(Boolean);
-    await putTask({ ...draft, labels, updatedAt: now() });
+    await putTask({ ...draft, labels, updatedAt: isoNow() });
     onSaved();
     onClose();
   }

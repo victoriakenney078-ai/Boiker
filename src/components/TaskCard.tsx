@@ -1,16 +1,8 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import type { Priority, Task, User } from '../types';
-import { useI18n } from '../i18n';
-import type { MessageKey } from '../i18n';
+import type { Task, User } from '../types';
+import { PRIORITY_KEYS, useI18n } from '../i18n';
 import styles from './TaskCard.module.css';
-
-const PRIORITY_KEYS: Record<Priority, MessageKey> = {
-  low: 'priority.low',
-  medium: 'priority.medium',
-  high: 'priority.high',
-  critical: 'priority.critical',
-};
 
 interface Props {
   task: Task;

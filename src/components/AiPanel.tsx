@@ -1,110 +1,54 @@
 import { useState } from 'react';
-import type { AiDecompositionDraft, Priority, SuggestedTask } from '../types';
+import type { Priority, SuggestedTask } from '../types';
 import { PRIORITIES } from '../types';
-import { decomposeEpic } from '../services/ai';
-import { getBacklogColumnId } from '../services/seed';
-import { putTask } from '../services/storage';
+import { createEpicOnBoard } from '../services/aiBoard';
 import { useAppData } from '../hooks/useAppData';
-import { useI18n } from '../i18n';
-import type { MessageKey } from '../i18n';
+import { useAiDecompose } from '../hooks/useAiDecompose';
+import { PRIORITY_KEYS, useI18n } from '../i18n';
 import styles from './Panel.module.css';
-
-const PRIORITY_KEYS: Record<Priority, MessageKey> = {
-  low: 'priority.low',
-  medium: 'priority.medium',
-  high: 'priority.high',
-  critical: 'priority.critical',
-};
 
 interface Props {
   selectedDocIds: string[];
 }
 
-function now() {
-  return new Date().toISOString();
-}
-
 export function AiPanel({ selectedDocIds }: Props) {
   const { users, refresh } = useAppData();
   const { t } = useI18n();
+  const { loading, error, setError, draft, setDraft, run } = useAiDecompose();
   const [epicTitle, setEpicTitle] = useState('');
   const [epicDescription, setEpicDescription] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [draft, setDraft] = useState<AiDecompositionDraft | null>(null);
 
   async function handleDecompose() {
     if (!epicTitle.trim()) {
       setError(t('ai.errorTitle'));
       return;
     }
-    setError(null);
-    setLoading(true);
     try {
-      const result = await decomposeEpic({
+      await run({
         epicTitle: epicTitle.trim(),
         epicDescription: epicDescription.trim(),
-        users,
         knowledgeDocIds: selectedDocIds,
       });
-      setDraft(result);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : t('ai.errorGeneric'));
-    } finally {
-      setLoading(false);
+    } catch {
+      /* error is stored in the hook */
     }
   }
 
   function updateSuggested(index: number, patch: Partial<SuggestedTask>) {
     if (!draft) return;
-    const suggestedTasks = draft.suggestedTasks.map((t, i) =>
-      i === index ? { ...t, ...patch } : t,
+    const suggestedTasks = draft.suggestedTasks.map((task, i) =>
+      i === index ? { ...task, ...patch } : task,
     );
     setDraft({ ...draft, suggestedTasks });
   }
 
   async function handleCreateOnBoard() {
     if (!draft) return;
-    const backlogId = await getBacklogColumnId();
-    if (!backlogId) {
+    const result = await createEpicOnBoard(draft);
+    if (!result.ok) {
       setError(t('ai.errorBacklog'));
       return;
     }
-    const ts = now();
-    const epicId = crypto.randomUUID();
-    await putTask({
-      id: epicId,
-      columnId: backlogId,
-      title: draft.epicTitle,
-      description: draft.epicDescription,
-      assigneeId: null,
-      priority: 'high',
-      labels: ['Эпик'],
-      subtasks: [],
-      parentTaskId: null,
-      source: 'ai',
-      createdAt: ts,
-      updatedAt: ts,
-    });
-
-    for (const st of draft.suggestedTasks) {
-      const t = now();
-      await putTask({
-        id: crypto.randomUUID(),
-        columnId: backlogId,
-        title: st.title,
-        description: st.description,
-        assigneeId: st.suggestedAssigneeId,
-        priority: st.priority,
-        labels: [],
-        subtasks: [],
-        parentTaskId: epicId,
-        source: 'ai',
-        createdAt: t,
-        updatedAt: t,
-      });
-    }
-
     setDraft(null);
     setEpicTitle('');
     setEpicDescription('');

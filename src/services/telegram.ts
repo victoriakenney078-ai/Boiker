@@ -1,6 +1,8 @@
-import type { TelegramInbound, TelegramWebhookPayload } from '../types';
+import type { Task, TelegramInbound, TelegramWebhookPayload } from '../types';
+import { isoNow } from '../lib/isoNow';
 import { tStatic } from '../i18n';
-import { getSettings, getTelegramInbox, putTelegramInbound } from './storage';
+import { getBacklogColumnId } from './seed';
+import { getSettings, getTelegramInbox, putTask, putTelegramInbound } from './storage';
 
 function uid(): string {
   return crypto.randomUUID();
@@ -22,7 +24,7 @@ export async function ingestTelegramMessage(
     chatId: payload.chatId,
     fromUsername: payload.fromUsername,
     text: payload.text,
-    receivedAt: new Date().toISOString(),
+    receivedAt: isoNow(),
     processed: false,
     linkedTaskId: null,
   };
@@ -59,4 +61,34 @@ export async function loadTelegramInbox(): Promise<TelegramInbound[]> {
 
 export async function updateTelegramItem(item: TelegramInbound): Promise<void> {
   await putTelegramInbound(item);
+}
+
+export async function createTaskFromInbound(item: TelegramInbound): Promise<string | null> {
+  const backlogId = await getBacklogColumnId();
+  if (!backlogId) return null;
+
+  const ts = isoNow();
+  const title = item.text.length > 80 ? `${item.text.slice(0, 77)}…` : item.text;
+  const taskId = crypto.randomUUID();
+  const task: Task = {
+    id: taskId,
+    columnId: backlogId,
+    title,
+    description: item.text,
+    assigneeId: null,
+    priority: 'medium',
+    labels: ['Telegram'],
+    subtasks: [],
+    parentTaskId: null,
+    source: 'telegram',
+    createdAt: ts,
+    updatedAt: ts,
+  };
+  await putTask(task);
+  await updateTelegramItem({
+    ...item,
+    processed: true,
+    linkedTaskId: taskId,
+  });
+  return taskId;
 }

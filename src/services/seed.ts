@@ -1,4 +1,5 @@
 import type { Column, Task, TelegramInbound, User } from '../types';
+import { isoNow } from '../lib/isoNow';
 import {
   getAllColumns,
   isSeeded,
@@ -14,10 +15,6 @@ const COLORS = ['#6366f1', '#ec4899', '#14b8a6', '#f59e0b'];
 
 function uid(): string {
   return crypto.randomUUID();
-}
-
-function now(): string {
-  return new Date().toISOString();
 }
 
 export async function seedIfEmpty(): Promise<void> {
@@ -58,8 +55,8 @@ export async function seedIfEmpty(): Promise<void> {
       subtasks: [],
       parentTaskId: null,
       source: 'manual',
-      createdAt: now(),
-      updatedAt: now(),
+      createdAt: isoNow(),
+      updatedAt: isoNow(),
     },
     {
       columnId: inProgressId,
@@ -74,8 +71,8 @@ export async function seedIfEmpty(): Promise<void> {
       ],
       parentTaskId: null,
       source: 'manual',
-      createdAt: now(),
-      updatedAt: now(),
+      createdAt: isoNow(),
+      updatedAt: isoNow(),
     },
     {
       columnId: reviewId,
@@ -87,8 +84,8 @@ export async function seedIfEmpty(): Promise<void> {
       subtasks: [],
       parentTaskId: null,
       source: 'manual',
-      createdAt: now(),
-      updatedAt: now(),
+      createdAt: isoNow(),
+      updatedAt: isoNow(),
     },
   ];
 
@@ -128,8 +125,10 @@ export async function seedIfEmpty(): Promise<void> {
   await markSeeded();
 }
 
+export function findBacklogId(columns: Column[]): string | null {
+  return columns.find((c) => c.title === 'Бэклог')?.id ?? columns[0]?.id ?? null;
+}
+
 export async function getBacklogColumnId(): Promise<string | null> {
-  const cols = await getAllColumns();
-  const backlog = cols.find((c) => c.title === 'Бэклог');
-  return backlog?.id ?? cols[0]?.id ?? null;
+  return findBacklogId(await getAllColumns());
 }
