@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { deleteKnowledgeDoc, uploadKnowledgeFile } from '../services/knowledge';
 import { getKnowledgeText } from '../services/storage';
 import { useKnowledge } from '../hooks/useAppData';
+import { useI18n } from '../i18n';
 import styles from './Panel.module.css';
 
 interface Props {
@@ -11,6 +12,7 @@ interface Props {
 
 export function KnowledgePanel({ selectedForAi, onToggleAiDoc }: Props) {
   const { knowledgeDocs, refresh } = useKnowledge();
+  const { t, dateLocale } = useI18n();
   const inputRef = useRef<HTMLInputElement>(null);
   const [viewId, setViewId] = useState<string | null>(null);
   const [viewText, setViewText] = useState('');
@@ -31,7 +33,7 @@ export function KnowledgePanel({ selectedForAi, onToggleAiDoc }: Props) {
   }
 
   async function handleDelete(id: string, name: string) {
-    if (!window.confirm(`Удалить «${name}»?`)) return;
+    if (!window.confirm(t('knowledge.confirmDelete', { name }))) return;
     await deleteKnowledgeDoc(id);
     if (viewId === id) setViewId(null);
     await refresh();
@@ -45,7 +47,7 @@ export function KnowledgePanel({ selectedForAi, onToggleAiDoc }: Props) {
 
   return (
     <div className={styles.panel}>
-      <h2 className={styles.title}>База знаний</h2>
+      <h2 className={styles.title}>{t('knowledge.title')}</h2>
       <div
         className={`${styles.drop} ${dragOver ? styles.dropActive : ''}`}
         onDragOver={(e) => {
@@ -59,9 +61,9 @@ export function KnowledgePanel({ selectedForAi, onToggleAiDoc }: Props) {
           void processFiles(e.dataTransfer.files);
         }}
       >
-        <p>Перетащите файлы (.md, .txt, .pdf) или</p>
+        <p>{t('knowledge.dropHint')}</p>
         <button type="button" onClick={() => inputRef.current?.click()}>
-          Выбрать файлы
+          {t('knowledge.chooseFiles')}
         </button>
         <input
           ref={inputRef}
@@ -76,10 +78,10 @@ export function KnowledgePanel({ selectedForAi, onToggleAiDoc }: Props) {
       <table className={styles.table}>
         <thead>
           <tr>
-            <th>ИИ</th>
-            <th>Имя</th>
-            <th>Дата</th>
-            <th>Размер</th>
+            <th>{t('knowledge.colAi')}</th>
+            <th>{t('knowledge.colName')}</th>
+            <th>{t('knowledge.colDate')}</th>
+            <th>{t('knowledge.colSize')}</th>
             <th />
           </tr>
         </thead>
@@ -91,7 +93,7 @@ export function KnowledgePanel({ selectedForAi, onToggleAiDoc }: Props) {
                   type="checkbox"
                   checked={selectedForAi.includes(doc.id)}
                   onChange={() => onToggleAiDoc(doc.id)}
-                  title="Использовать в контексте ИИ"
+                  title={t('knowledge.useInAi')}
                 />
               </td>
               <td>
@@ -99,16 +101,16 @@ export function KnowledgePanel({ selectedForAi, onToggleAiDoc }: Props) {
                   {doc.name}
                 </button>
                 {doc.textLimited && (
-                  <span className={styles.warn} title="PDF — ограниченный текст">
+                  <span className={styles.warn} title={t('knowledge.pdfLimited')}>
                     PDF
                   </span>
                 )}
               </td>
-              <td>{new Date(doc.uploadedAt).toLocaleString('ru-RU')}</td>
+              <td>{new Date(doc.uploadedAt).toLocaleString(dateLocale)}</td>
               <td>{formatSize(doc.size)}</td>
               <td>
                 <button type="button" onClick={() => void handleDelete(doc.id, doc.name)}>
-                  Удалить
+                  {t('knowledge.delete')}
                 </button>
               </td>
             </tr>
@@ -117,15 +119,15 @@ export function KnowledgePanel({ selectedForAi, onToggleAiDoc }: Props) {
       </table>
 
       {knowledgeDocs.length === 0 && (
-        <p className={styles.muted}>Документов пока нет. Загрузите markdown или текст.</p>
+        <p className={styles.muted}>{t('knowledge.empty')}</p>
       )}
 
       {viewId && (
         <div className={styles.viewer}>
           <div className={styles.viewerHead}>
-            <strong>Просмотр</strong>
+            <strong>{t('knowledge.viewer')}</strong>
             <button type="button" onClick={() => setViewId(null)}>
-              Закрыть
+              {t('knowledge.close')}
             </button>
           </div>
           <pre className={styles.pre}>{viewText}</pre>

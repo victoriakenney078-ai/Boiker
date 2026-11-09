@@ -1,8 +1,16 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import type { Task, User } from '../types';
-import { PRIORITY_LABELS } from '../types';
+import type { Priority, Task, User } from '../types';
+import { useI18n } from '../i18n';
+import type { MessageKey } from '../i18n';
 import styles from './TaskCard.module.css';
+
+const PRIORITY_KEYS: Record<Priority, MessageKey> = {
+  low: 'priority.low',
+  medium: 'priority.medium',
+  high: 'priority.high',
+  critical: 'priority.critical',
+};
 
 interface Props {
   task: Task;
@@ -11,6 +19,7 @@ interface Props {
 }
 
 export function TaskCard({ task, users, onOpen }: Props) {
+  const { t } = useI18n();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: task.id });
 
@@ -38,10 +47,12 @@ export function TaskCard({ task, users, onOpen }: Props) {
     >
       <div className={styles.top}>
         <span className={`${styles.priority} ${styles[task.priority]}`}>
-          {PRIORITY_LABELS[task.priority]}
+          {t(PRIORITY_KEYS[task.priority])}
         </span>
         {task.source !== 'manual' && (
-          <span className={styles.source}>{task.source === 'ai' ? 'ИИ' : 'TG'}</span>
+          <span className={styles.source}>
+            {task.source === 'ai' ? t('task.sourceAi') : t('task.sourceTg')}
+          </span>
         )}
       </div>
       <h4 className={styles.title}>{task.title}</h4>

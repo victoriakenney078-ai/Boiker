@@ -4,6 +4,7 @@ import { getBacklogColumnId } from '../services/seed';
 import { putTask } from '../services/storage';
 import { simulateTelegramMessage, updateTelegramItem } from '../services/telegram';
 import { useAppData } from '../hooks/useAppData';
+import { useI18n } from '../i18n';
 import styles from './Panel.module.css';
 
 function now() {
@@ -12,6 +13,7 @@ function now() {
 
 export function TelegramInbox() {
   const { telegram, tasks, refresh } = useAppData();
+  const { t, dateLocale } = useI18n();
   const [linkTaskId, setLinkTaskId] = useState<string>('');
 
   async function handleSimulate() {
@@ -22,7 +24,7 @@ export function TelegramInbox() {
   async function createTaskFrom(item: TelegramInbound) {
     const backlogId = await getBacklogColumnId();
     if (!backlogId) {
-      window.alert('Не найдена колонка «Бэклог»');
+      window.alert(t('telegram.noBacklog'));
       return;
     }
     const ts = now();
@@ -70,12 +72,10 @@ export function TelegramInbox() {
 
   return (
     <div className={styles.panel}>
-      <h2 className={styles.title}>Telegram</h2>
-      <p className={styles.muted}>
-        Inbox входящих сообщений. Для продакшена подключите webhook (см. README).
-      </p>
+      <h2 className={styles.title}>{t('telegram.title')}</h2>
+      <p className={styles.muted}>{t('telegram.lead')}</p>
       <button type="button" className={styles.primaryBtn} onClick={() => void handleSimulate()}>
-        Симулировать сообщение
+        {t('telegram.simulate')}
       </button>
 
       <ul className={styles.inbox}>
@@ -83,29 +83,29 @@ export function TelegramInbox() {
           <li key={item.id} className={item.processed ? styles.processed : ''}>
             <div className={styles.inboxMeta}>
               <span>{item.fromUsername ? `@${item.fromUsername}` : item.chatId}</span>
-              <span>{new Date(item.receivedAt).toLocaleString('ru-RU')}</span>
+              <span>{new Date(item.receivedAt).toLocaleString(dateLocale)}</span>
             </div>
             <p className={styles.inboxText}>{item.text}</p>
             {item.linkedTaskId && (
               <p className={styles.hint}>
-                Привязано к задаче:{' '}
+                {t('telegram.linkedTo')}{' '}
                 {tasks.find((t) => t.id === item.linkedTaskId)?.title ?? item.linkedTaskId}
               </p>
             )}
             {!item.processed && (
               <div className={styles.inboxActions}>
                 <button type="button" onClick={() => void createTaskFrom(item)}>
-                  Создать задачу
+                  {t('telegram.createTask')}
                 </button>
                 <button type="button" onClick={() => void markProcessed(item)}>
-                  Обработано
+                  {t('telegram.processed')}
                 </button>
                 <select
                   value={linkTaskId}
                   onChange={(e) => setLinkTaskId(e.target.value)}
-                  aria-label="Задача для привязки"
+                  aria-label={t('telegram.linkAria')}
                 >
-                  <option value="">Привязать к задаче…</option>
+                  <option value="">{t('telegram.linkToTask')}</option>
                   {tasks.map((t) => (
                     <option key={t.id} value={t.id}>
                       {t.title}
@@ -117,7 +117,7 @@ export function TelegramInbox() {
                   disabled={!linkTaskId}
                   onClick={() => void linkExisting(item)}
                 >
-                  Привязать
+                  {t('telegram.link')}
                 </button>
               </div>
             )}

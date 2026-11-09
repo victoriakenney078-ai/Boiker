@@ -1,6 +1,9 @@
 import { useState, type FormEvent } from 'react';
 import type { AuthError } from '@supabase/supabase-js';
 import { supabase } from '../../services/supabase';
+import { useI18n } from '../../i18n';
+import type { Translate } from '../../i18n';
+import { LanguageSwitcher } from '../LanguageSwitcher';
 import styles from './AuthPage.module.css';
 
 interface Props {
@@ -10,33 +13,34 @@ interface Props {
 
 type Mode = 'login' | 'signup';
 
-function authErrorText(error: AuthError): string {
+function authErrorText(error: AuthError, t: Translate): string {
   const message = error.message.toLowerCase();
   if (error.status === 429 || message.includes('rate limit')) {
-    return 'Слишком много попыток. Подождите немного и попробуйте снова.';
+    return t('auth.errorRateLimit');
   }
   if (message.includes('invalid login credentials')) {
-    return 'Неверный email или пароль.';
+    return t('auth.errorInvalidCredentials');
   }
   if (message.includes('already registered') || message.includes('already been registered')) {
-    return 'Пользователь с таким email уже зарегистрирован.';
+    return t('auth.errorAlreadyRegistered');
   }
   if (message.includes('at least 6')) {
-    return 'Пароль должен быть не короче 6 символов.';
+    return t('auth.passwordMin');
   }
   if (message.includes('invalid') && message.includes('email')) {
-    return 'Некорректный email.';
+    return t('auth.errorInvalidEmail');
   }
   if (message.includes('email not confirmed')) {
-    return 'Подтвердите email по ссылке из письма.';
+    return t('auth.errorEmailNotConfirmed');
   }
   if (message.includes('signup') && message.includes('disabled')) {
-    return 'Регистрация сейчас отключена.';
+    return t('auth.errorSignupDisabled');
   }
-  return 'Не удалось выполнить запрос. Попробуйте ещё раз.';
+  return t('auth.errorGeneric');
 }
 
 export function AuthPage({ onBack, onSuccess }: Props) {
+  const { t } = useI18n();
   const [mode, setMode] = useState<Mode>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -58,17 +62,17 @@ export function AuthPage({ onBack, onSuccess }: Props) {
 
     const trimmedEmail = email.trim();
     if (!trimmedEmail || !password) {
-      setError('Введите email и пароль.');
+      setError(t('auth.needEmailPassword'));
       return;
     }
 
     if (mode === 'signup') {
       if (password.length < 6) {
-        setError('Пароль должен быть не короче 6 символов.');
+        setError(t('auth.passwordMin'));
         return;
       }
       if (password !== confirm) {
-        setError('Пароли не совпадают.');
+        setError(t('auth.passwordMismatch'));
         return;
       }
     }
@@ -81,7 +85,7 @@ export function AuthPage({ onBack, onSuccess }: Props) {
           password,
         });
         if (signInError) {
-          setError(authErrorText(signInError));
+          setError(authErrorText(signInError, t));
           return;
         }
         if (data.session) onSuccess();
@@ -94,14 +98,14 @@ export function AuthPage({ onBack, onSuccess }: Props) {
         options: { emailRedirectTo: window.location.origin },
       });
       if (signUpError) {
-        setError(authErrorText(signUpError));
+        setError(authErrorText(signUpError, t));
         return;
       }
       if (data.session) {
         onSuccess();
         return;
       }
-      setInfo('Проверьте почту — мы отправили ссылку для подтверждения. После перехода по ней откроется доска.');
+      setInfo(t('auth.checkEmail'));
     } finally {
       setPending(false);
     }
@@ -114,11 +118,12 @@ export function AuthPage({ onBack, onSuccess }: Props) {
         <button type="button" className={styles.navLogo} onClick={onBack}>
           AivibeBoard
         </button>
+        <LanguageSwitcher variant="landing" />
       </header>
       <main className={styles.main}>
         <form className={styles.card} noValidate onSubmit={(event) => void onSubmit(event)}>
           <p className={styles.eyebrow}>AivibeBoard</p>
-          <h1>{mode === 'login' ? 'Вход' : 'Регистрация'}</h1>
+          <h1>{mode === 'login' ? t('auth.login') : t('auth.signup')}</h1>
           <div className={styles.tabs} role="tablist">
             <button
               type="button"
@@ -127,7 +132,7 @@ export function AuthPage({ onBack, onSuccess }: Props) {
               className={mode === 'login' ? styles.tabActive : styles.tab}
               onClick={() => switchMode('login')}
             >
-              Вход
+              {t('auth.login')}
             </button>
             <button
               type="button"
@@ -136,11 +141,11 @@ export function AuthPage({ onBack, onSuccess }: Props) {
               className={mode === 'signup' ? styles.tabActive : styles.tab}
               onClick={() => switchMode('signup')}
             >
-              Регистрация
+              {t('auth.signup')}
             </button>
           </div>
           <label className={styles.field}>
-            Email
+            {t('auth.email')}
             <input
               type="email"
               autoComplete="email"
@@ -150,7 +155,7 @@ export function AuthPage({ onBack, onSuccess }: Props) {
             />
           </label>
           <label className={styles.field}>
-            Пароль
+            {t('auth.password')}
             <input
               type="password"
               autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
@@ -162,7 +167,7 @@ export function AuthPage({ onBack, onSuccess }: Props) {
           </label>
           {mode === 'signup' ? (
             <label className={styles.field}>
-              Повторите пароль
+              {t('auth.confirmPassword')}
               <input
                 type="password"
                 autoComplete="new-password"
@@ -180,10 +185,14 @@ export function AuthPage({ onBack, onSuccess }: Props) {
           ) : null}
           {info ? <p className={styles.info}>{info}</p> : null}
           <button type="submit" className={styles.submit} disabled={pending}>
-            {pending ? 'Подождите…' : mode === 'login' ? 'Войти' : 'Создать аккаунт'}
+            {pending
+              ? t('auth.pending')
+              : mode === 'login'
+                ? t('auth.submitLogin')
+                : t('auth.submitSignup')}
           </button>
           <button type="button" className={styles.back} onClick={onBack}>
-            Назад на сайт
+            {t('auth.backToSite')}
           </button>
         </form>
       </main>

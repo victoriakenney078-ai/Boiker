@@ -92,6 +92,8 @@ export type AppSection =
   | 'team'
   | 'settings';
 
+export const PRIORITIES: Priority[] = ['low', 'medium', 'high', 'critical'];
+
 export const PRIORITY_LABELS: Record<Priority, string> = {
   low: 'Низкий',
   medium: 'Средний',

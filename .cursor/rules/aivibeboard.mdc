@@ -5,14 +5,15 @@ alwaysApply: true
 
 # AivibeBoard
 
-Одностраничное приложение: Vite + React 18 + TypeScript. Без React Router: лендинг, форма входа и доска переключаются состоянием в `App.tsx`; внутри доски — sidebar + модалки. Персистентность доски: **IndexedDB** (`src/services/storage.ts`); сессия — **Supabase Auth** (`src/services/supabase.ts`). UI и сообщения об ошибках — **русский**. Бренд в header: **AivibeBoard** + имя проекта.
+Одностраничное приложение: Vite + React 18 + TypeScript. Без React Router: лендинг, форма входа и доска переключаются состоянием в `App.tsx`; внутри доски — sidebar + модалки. Персистентность доски: **IndexedDB** (`src/services/storage.ts`); сессия — **Supabase Auth** (`src/services/supabase.ts`). UI и ошибки — **русский, английский, иврит** (`src/i18n/`, переключатель в шапках, для `he` — `dir="rtl"`). Бренд в header: **AivibeBoard** + имя проекта.
 
 ## Структура
 
 - `src/types/` — `User`, `Column`, `Task`, `KnowledgeDoc`, `TelegramInbound`, `AiDecompositionDraft`, `ProjectSettings`
 - `src/services/` — `storage`, `ai`, `knowledge`, `telegram`, `supabase`
 - `src/hooks/` — `useAppData`, `useAiDecompose`
-- `src/components/` — Board, TaskModal, KnowledgePanel, AiPanel, TelegramInbox, Sidebar
+- `src/i18n/` — словари `ru` / `en` / `he`, `I18nProvider`, `useI18n`
+- `src/components/` — Board, TaskModal, KnowledgePanel, AiPanel, TelegramInbox, Sidebar, Header, LanguageSwitcher
 - `src/components/landing/` — `LandingPage`, `AuthPage` (email + пароль)
 
 Секреты только через `import.meta.env` (`VITE_OPENAI_*`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`); не коммитить `.env`. Без URL и anon-ключа клиент не стартует.

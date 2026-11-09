@@ -1,4 +1,5 @@
 import type { TelegramInbound, TelegramWebhookPayload } from '../types';
+import { tStatic } from '../i18n';
 import { getSettings, getTelegramInbox, putTelegramInbound } from './storage';
 
 function uid(): string {
@@ -13,7 +14,7 @@ export async function ingestTelegramMessage(
   const settings = await getSettings();
   const secret = settings.telegramWebhookSecret?.trim();
   if (secret && payload.secret !== secret) {
-    return { error: 'Неверный секрет webhook' };
+    return { error: tStatic('telegram.errorSecret') };
   }
 
   const item: TelegramInbound = {

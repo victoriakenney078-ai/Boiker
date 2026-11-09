@@ -1,6 +1,7 @@
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useDroppable } from '@dnd-kit/core';
 import type { Column, Task, User } from '../types';
+import { useI18n } from '../i18n';
 import { TaskCard } from './TaskCard';
 import styles from './BoardColumn.module.css';
 
@@ -23,6 +24,7 @@ export function BoardColumn({
   onDelete,
   onAddTask,
 }: Props) {
+  const { t } = useI18n();
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
   const ids = tasks.map((t) => t.id);
 
@@ -32,10 +34,10 @@ export function BoardColumn({
         <h3 className={styles.title}>{column.title}</h3>
         <span className={styles.count}>{tasks.length}</span>
         <div className={styles.menu}>
-          <button type="button" className={styles.iconBtn} onClick={() => onRename(column)} title="Переименовать">
+          <button type="button" className={styles.iconBtn} onClick={() => onRename(column)} title={t('board.rename')}>
             ✎
           </button>
-          <button type="button" className={styles.iconBtn} onClick={() => onDelete(column)} title="Удалить">
+          <button type="button" className={styles.iconBtn} onClick={() => onDelete(column)} title={t('board.delete')}>
             ×
           </button>
         </div>
@@ -51,7 +53,7 @@ export function BoardColumn({
         </SortableContext>
       </div>
       <button type="button" className={styles.add} onClick={() => onAddTask(column.id)}>
-        + Карточка
+        {t('board.addCard')}
       </button>
     </section>
   );

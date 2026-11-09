@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import type { AiDecompositionDraft } from '../types';
 import { decomposeEpic } from '../services/ai';
+import { tStatic } from '../i18n';
 import { useAppData } from './useAppData';
 
 export function useAiDecompose() {
@@ -22,7 +23,7 @@ export function useAiDecompose() {
         setDraft(result);
         return result;
       } catch (e) {
-        const msg = e instanceof Error ? e.message : 'Ошибка разбиения';
+        const msg = e instanceof Error ? e.message : tStatic('ai.errorGeneric');
         setError(msg);
         throw e;
       } finally {

@@ -1,3 +1,5 @@
+import { useI18n } from '../../i18n';
+import { LanguageSwitcher } from '../LanguageSwitcher';
 import styles from './LandingPage.module.css';
 
 interface Props {
@@ -6,50 +8,51 @@ interface Props {
   onOpenApp: () => void;
 }
 
-const features = [
-  {
-    title: 'Канбан-доска',
-    text: 'Колонки, карточки, приоритеты и подзадачи — как в Trello или Jira, но без лишней сложности.',
-    icon: '▦',
-  },
-  {
-    title: 'ИИ-разбиение эпиков',
-    text: 'Опишите большую задачу — ассистент предложит подзадачи и назначит исполнителей из команды.',
-    icon: '✦',
-  },
-  {
-    title: 'Telegram-inbox',
-    text: 'Заявки из чата попадают в очередь на доске: обработайте и превратите в карточки одним кликом.',
-    icon: '✉',
-  },
-  {
-    title: 'База знаний',
-    text: 'Загружайте md и txt по проекту — выбранные документы подмешиваются в контекст для ИИ.',
-    icon: '◫',
-  },
-];
-
-const steps = [
-  {
-    n: '01',
-    title: 'Соберите контекст',
-    text: 'Добавьте участников, документы и настройте колонки под ваш процесс.',
-  },
-  {
-    n: '02',
-    title: 'Поставьте эпик',
-    text: 'Введите описание крупной задачи или примите запрос из Telegram.',
-  },
-  {
-    n: '03',
-    title: 'Подтвердите разбиение',
-    text: 'Проверьте черновик ИИ и отправьте подзадачи на доску с назначениями.',
-  },
-];
-
 export function LandingPage({ signedIn, onOpenAuth, onOpenApp }: Props) {
+  const { t } = useI18n();
   const open = signedIn ? onOpenApp : onOpenAuth;
-  const cta = signedIn ? 'Открыть доску' : 'Войти';
+  const cta = signedIn ? t('landing.ctaOpenBoard') : t('landing.ctaLogin');
+
+  const features = [
+    {
+      title: t('landing.featureKanbanTitle'),
+      text: t('landing.featureKanbanText'),
+      icon: '▦',
+    },
+    {
+      title: t('landing.featureAiTitle'),
+      text: t('landing.featureAiText'),
+      icon: '✦',
+    },
+    {
+      title: t('landing.featureTelegramTitle'),
+      text: t('landing.featureTelegramText'),
+      icon: '✉',
+    },
+    {
+      title: t('landing.featureKnowledgeTitle'),
+      text: t('landing.featureKnowledgeText'),
+      icon: '◫',
+    },
+  ];
+
+  const steps = [
+    {
+      n: '01',
+      title: t('landing.step1Title'),
+      text: t('landing.step1Text'),
+    },
+    {
+      n: '02',
+      title: t('landing.step2Title'),
+      text: t('landing.step2Text'),
+    },
+    {
+      n: '03',
+      title: t('landing.step3Title'),
+      text: t('landing.step3Text'),
+    },
+  ];
 
   return (
     <div className={styles.page}>
@@ -58,48 +61,45 @@ export function LandingPage({ signedIn, onOpenAuth, onOpenApp }: Props) {
         <a href="#top" className={styles.navLogo}>
           AivibeBoard
         </a>
-        <nav className={styles.navLinks} aria-label="Разделы">
-          <a href="#features">Возможности</a>
-          <a href="#how">Как работает</a>
-          <a href="#start">Старт</a>
+        <nav className={styles.navLinks} aria-label={t('landing.navAria')}>
+          <a href="#features">{t('landing.navFeatures')}</a>
+          <a href="#how">{t('landing.navHow')}</a>
+          <a href="#start">{t('landing.navStart')}</a>
         </nav>
-        <button type="button" className={styles.navCta} onClick={open}>
-          {cta}
-        </button>
+        <div className={styles.navEnd}>
+          <LanguageSwitcher variant="landing" />
+          <button type="button" className={styles.navCta} onClick={open}>
+            {cta}
+          </button>
+        </div>
       </header>
 
       <main id="top">
         <section className={styles.hero}>
           <div className={styles.heroContent}>
-            <p className={styles.eyebrow}>Управление проектом · React + TypeScript</p>
-            <h1 className={styles.heroTitle}>
-              Доска задач с&nbsp;ИИ, Telegram и&nbsp;базой знаний
-            </h1>
-            <p className={styles.heroLead}>
-              AivibeBoard — лёгкий аналог Trello для команды: разбивайте эпики через
-              ассистента, принимайте задачи из мессенджера и храните документы проекта
-              рядом с канбаном. Данные остаются в вашем браузере.
-            </p>
+            <p className={styles.eyebrow}>{t('landing.eyebrow')}</p>
+            <h1 className={styles.heroTitle}>{t('landing.heroTitle')}</h1>
+            <p className={styles.heroLead}>{t('landing.heroLead')}</p>
             <div className={styles.heroActions}>
               <button type="button" className={styles.btnPrimary} onClick={open}>
-                {signedIn ? 'Открыть доску' : 'Попробовать бесплатно'}
+                {signedIn ? t('landing.ctaOpenBoard') : t('landing.ctaTry')}
               </button>
               <a href="#features" className={styles.btnGhost}>
-                Смотреть возможности
+                {t('landing.ctaSeeFeatures')}
               </a>
             </div>
             <ul className={styles.heroStats}>
               <li>
                 <strong>IndexedDB</strong>
-                <span>локальное хранение</span>
+                <span>{t('landing.statIndexed')}</span>
               </li>
               <li>
-                <strong>Без сервера</strong>
-                <span>MVP в браузере</span>
+                <strong>{t('landing.statNoServerTitle')}</strong>
+                <span>{t('landing.statNoServer')}</span>
               </li>
               <li>
-                <strong>RU</strong>
-                <span>интерфейс на русском</span>
+                <strong>{t('landing.statLangTitle')}</strong>
+                <span>{t('landing.statLang')}</span>
               </li>
             </ul>
           </div>
@@ -107,23 +107,20 @@ export function LandingPage({ signedIn, onOpenAuth, onOpenApp }: Props) {
             <div className={styles.artFrame}>
               <img
                 src="/landing-art.jpg"
-                alt="Иллюстрация: уютное розовое пространство и чтение — настроение AivibeBoard"
+                alt={t('landing.artAlt')}
                 width={480}
                 height={640}
                 loading="eager"
               />
             </div>
-            <figcaption className={styles.artCaption}>Ваш проект — в тёплом ритме</figcaption>
+            <figcaption className={styles.artCaption}>{t('landing.artCaption')}</figcaption>
           </figure>
         </section>
 
         <section id="features" className={styles.section}>
           <div className={styles.sectionHead}>
-            <h2>Всё для потока задач в одном месте</h2>
-            <p>
-              Не отдельные сервисы для доски, чат-бота и wiki — единая рабочая
-              поверхность для небольшой команды.
-            </p>
+            <h2>{t('landing.featuresHead')}</h2>
+            <p>{t('landing.featuresLead')}</p>
           </div>
           <ul className={styles.featureGrid}>
             {features.map((f) => (
@@ -140,8 +137,8 @@ export function LandingPage({ signedIn, onOpenAuth, onOpenApp }: Props) {
 
         <section id="how" className={`${styles.section} ${styles.sectionMuted}`}>
           <div className={styles.sectionHead}>
-            <h2>Как это работает</h2>
-            <p>От идеи до карточек на доске — три шага после входа.</p>
+            <h2>{t('landing.howHead')}</h2>
+            <p>{t('landing.howLead')}</p>
           </div>
           <ol className={styles.steps}>
             {steps.map((s) => (
@@ -158,13 +155,10 @@ export function LandingPage({ signedIn, onOpenAuth, onOpenApp }: Props) {
 
         <section id="start" className={styles.ctaBand}>
           <div className={styles.ctaInner}>
-            <h2>Готовы собрать первый спринт?</h2>
-            <p>
-              Демо открывается в этой же вкладке: канбан, inbox Telegram, панель ИИ и
-              база знаний уже наполнены примерами.
-            </p>
+            <h2>{t('landing.startHead')}</h2>
+            <p>{t('landing.startLead')}</p>
             <button type="button" className={styles.btnPrimary} onClick={open}>
-              {signedIn ? 'Открыть доску' : 'Запустить AivibeBoard'}
+              {signedIn ? t('landing.ctaOpenBoard') : t('landing.ctaLaunch')}
             </button>
           </div>
         </section>
@@ -172,7 +166,7 @@ export function LandingPage({ signedIn, onOpenAuth, onOpenApp }: Props) {
 
       <footer className={styles.footer}>
         <span className={styles.footerBrand}>AivibeBoard</span>
-        <p>Одностраничное приложение · Vite · React · TypeScript</p>
+        <p>{t('landing.footerNote')}</p>
       </footer>
     </div>
   );

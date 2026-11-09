@@ -1,8 +1,23 @@
 import { useEffect, useState } from 'react';
 import type { Priority, Task, TaskSource, User } from '../types';
-import { PRIORITY_LABELS, SOURCE_LABELS } from '../types';
+import { PRIORITIES } from '../types';
 import { deleteTask, putTask } from '../services/storage';
+import { useI18n } from '../i18n';
+import type { MessageKey } from '../i18n';
 import styles from './TaskModal.module.css';
+
+const PRIORITY_KEYS: Record<Priority, MessageKey> = {
+  low: 'priority.low',
+  medium: 'priority.medium',
+  high: 'priority.high',
+  critical: 'priority.critical',
+};
+
+const SOURCE_KEYS: Record<TaskSource, MessageKey> = {
+  manual: 'source.manual',
+  ai: 'source.ai',
+  telegram: 'source.telegram',
+};
 
 interface Props {
   task: Task | null;
@@ -45,6 +60,7 @@ export function TaskModal({
   onClose,
   onSaved,
 }: Props) {
+  const { t } = useI18n();
   const [draft, setDraft] = useState<Task>(() => emptyTask(defaultColumnId));
   const [labelsInput, setLabelsInput] = useState('');
   const [newSubtask, setNewSubtask] = useState('');
@@ -71,7 +87,7 @@ export function TaskModal({
 
   async function handleSave() {
     if (!draft.title.trim()) {
-      window.alert('Укажите название задачи');
+      window.alert(t('task.titleRequired'));
       return;
     }
     const labels = labelsInput
@@ -88,7 +104,7 @@ export function TaskModal({
       onClose();
       return;
     }
-    if (!window.confirm('Удалить задачу?')) return;
+    if (!window.confirm(t('task.confirmDelete'))) return;
     await deleteTask(draft.id);
     onSaved();
     onClose();
@@ -116,20 +132,20 @@ export function TaskModal({
         aria-labelledby="task-modal-title"
       >
         <header className={styles.header}>
-          <h2 id="task-modal-title">{isNew ? 'Новая задача' : 'Задача'}</h2>
-          <button type="button" className={styles.close} onClick={onClose} aria-label="Закрыть">
+          <h2 id="task-modal-title">{isNew ? t('task.newTask') : t('task.task')}</h2>
+          <button type="button" className={styles.close} onClick={onClose} aria-label={t('task.close')}>
             ×
           </button>
         </header>
 
         {parent && (
           <p className={styles.parentHint}>
-            Эпик: <strong>{parent.title}</strong>
+            {t('task.epic')} <strong>{parent.title}</strong>
           </p>
         )}
 
         <label className={styles.field}>
-          Название
+          {t('task.title')}
           <input
             value={draft.title}
             onChange={(e) => setDraft({ ...draft, title: e.target.value })}
@@ -137,7 +153,7 @@ export function TaskModal({
         </label>
 
         <label className={styles.field}>
-          Описание
+          {t('task.description')}
           <textarea
             rows={4}
             value={draft.description}
@@ -147,7 +163,7 @@ export function TaskModal({
 
         <div className={styles.row}>
           <label className={styles.field}>
-            Исполнитель
+            {t('task.assignee')}
             <select
               value={draft.assigneeId ?? ''}
               onChange={(e) =>
@@ -157,7 +173,7 @@ export function TaskModal({
                 })
               }
             >
-              <option value="">Не назначен</option>
+              <option value="">{t('task.unassigned')}</option>
               {users.map((u) => (
                 <option key={u.id} value={u.id}>
                   {u.name}
@@ -167,16 +183,16 @@ export function TaskModal({
           </label>
 
           <label className={styles.field}>
-            Приоритет
+            {t('task.priority')}
             <select
               value={draft.priority}
               onChange={(e) =>
                 setDraft({ ...draft, priority: e.target.value as Priority })
               }
             >
-              {(Object.keys(PRIORITY_LABELS) as Priority[]).map((p) => (
+              {PRIORITIES.map((p) => (
                 <option key={p} value={p}>
-                  {PRIORITY_LABELS[p]}
+                  {t(PRIORITY_KEYS[p])}
                 </option>
               ))}
             </select>
@@ -184,16 +200,16 @@ export function TaskModal({
         </div>
 
         <label className={styles.field}>
-          Метки (через запятую)
+          {t('task.labels')}
           <input value={labelsInput} onChange={(e) => setLabelsInput(e.target.value)} />
         </label>
 
         <p className={styles.meta}>
-          Источник: {SOURCE_LABELS[draft.source as TaskSource]}
+          {t('task.source', { source: t(SOURCE_KEYS[draft.source as TaskSource]) })}
         </p>
 
         <div className={styles.subtasks}>
-          <h3>Подзадачи</h3>
+          <h3>{t('task.subtasks')}</h3>
           <ul>
             {draft.subtasks.map((st) => (
               <li key={st.id}>
@@ -217,7 +233,7 @@ export function TaskModal({
           </ul>
           <div className={styles.subtaskAdd}>
             <input
-              placeholder="Новая подзадача"
+              placeholder={t('task.newSubtask')}
               value={newSubtask}
               onChange={(e) => setNewSubtask(e.target.value)}
               onKeyDown={(e) => {
@@ -225,7 +241,7 @@ export function TaskModal({
               }}
             />
             <button type="button" onClick={addSubtask}>
-              Добавить
+              {t('task.add')}
             </button>
           </div>
         </div>
@@ -233,15 +249,15 @@ export function TaskModal({
         <footer className={styles.footer}>
           {!isNew && (
             <button type="button" className={styles.danger} onClick={() => void handleDelete()}>
-              Удалить
+              {t('task.delete')}
             </button>
           )}
           <div className={styles.footerRight}>
             <button type="button" onClick={onClose}>
-              Отмена
+              {t('task.cancel')}
             </button>
             <button type="button" className={styles.primary} onClick={() => void handleSave()}>
-              Сохранить
+              {t('task.save')}
             </button>
           </div>
         </footer>

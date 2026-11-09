@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { putSettings } from '../services/storage';
 import { useAppData } from '../hooks/useAppData';
+import { useI18n } from '../i18n';
 import styles from './Panel.module.css';
 
 export function SettingsPanel() {
   const { settings, refresh } = useAppData();
+  const { t } = useI18n();
   const [projectName, setProjectName] = useState(settings.projectName);
   const [telegramSecret, setTelegramSecret] = useState(settings.telegramWebhookSecret ?? '');
 
@@ -16,42 +18,43 @@ export function SettingsPanel() {
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     await putSettings({
-      projectName: projectName.trim() || 'Демо',
+      projectName: projectName.trim() || t('settings.defaultProject'),
       openAiApiKeyConfigured: Boolean(import.meta.env.VITE_OPENAI_API_KEY),
       telegramWebhookSecret: telegramSecret.trim(),
     });
     await refresh();
-    window.alert('Настройки сохранены');
+    window.alert(t('settings.saved'));
   }
 
   return (
     <div className={styles.panel}>
-      <h2 className={styles.title}>Настройки</h2>
+      <h2 className={styles.title}>{t('settings.title')}</h2>
       <form onSubmit={(e) => void handleSave(e)} className={styles.settingsForm}>
         <label className={styles.labelBlock}>
-          Имя проекта
+          {t('settings.projectName')}
           <input value={projectName} onChange={(e) => setProjectName(e.target.value)} />
         </label>
         <label className={styles.labelBlock}>
-          Секрет Telegram webhook
+          {t('settings.telegramSecret')}
           <input
             value={telegramSecret}
             onChange={(e) => setTelegramSecret(e.target.value)}
-            placeholder="Совпадает с secret в POST теле"
+            placeholder={t('settings.telegramPlaceholder')}
           />
         </label>
         <p className={styles.muted}>
-          Ключ OpenAI задаётся в файле <code>.env</code> как{' '}
-          <code>VITE_OPENAI_API_KEY</code>. После изменения перезапустите{' '}
+          {t('settings.openaiHintBefore')} <code>.env</code> {t('settings.openaiHintMid')}{' '}
+          <code>VITE_OPENAI_API_KEY</code>. {t('settings.openaiHintAfter')}{' '}
           <code>npm run dev</code>.
         </p>
         <p className={styles.muted}>
-          Модель: <code>{import.meta.env.VITE_OPENAI_MODEL ?? 'gpt-4o-mini'}</code>
+          {t('settings.model')} <code>{import.meta.env.VITE_OPENAI_MODEL ?? 'gpt-4o-mini'}</code>
           {' · '}
-          Ключ: {import.meta.env.VITE_OPENAI_API_KEY ? 'задан' : 'не задан'}
+          {t('settings.key')}{' '}
+          {import.meta.env.VITE_OPENAI_API_KEY ? t('settings.keySet') : t('settings.keyMissing')}
         </p>
         <button type="submit" className={styles.primaryBtn}>
-          Сохранить
+          {t('settings.save')}
         </button>
       </form>
     </div>

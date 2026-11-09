@@ -1,4 +1,5 @@
 import type { AiDecompositionDraft, Priority, SuggestedTask, User } from '../types';
+import { tStatic } from '../i18n';
 import { getKnowledgeText } from './storage';
 
 const SYSTEM_PROMPT = `You are an experienced project manager. Break the epic into 3-12 concrete actionable tasks.
@@ -106,20 +107,22 @@ export async function decomposeEpic(params: {
 
     if (!res.ok) {
       const errText = await res.text();
-      throw new Error(`Ошибка OpenAI (${res.status}): ${errText.slice(0, 200)}`);
+      throw new Error(
+        tStatic('ai.errorOpenai', { status: res.status, detail: errText.slice(0, 200) }),
+      );
     }
 
     const data = (await res.json()) as {
       choices?: { message?: { content?: string } }[];
     };
     const content = data.choices?.[0]?.message?.content;
-    if (!content) throw new Error('Пустой ответ от OpenAI');
+    if (!content) throw new Error(tStatic('ai.errorEmpty'));
 
     let parsed: { tasks?: OpenAiTaskRow[] };
     try {
       parsed = JSON.parse(content) as { tasks?: OpenAiTaskRow[] };
     } catch {
-      throw new Error('Не удалось разобрать JSON от ИИ');
+      throw new Error(tStatic('ai.errorJson'));
     }
 
     const rows = parsed.tasks ?? [];

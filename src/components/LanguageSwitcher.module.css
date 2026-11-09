@@ -1,0 +1,56 @@
+.switcher {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.option,
+.active {
+  border: none;
+  padding: 0.35rem 0.55rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  line-height: 1.2;
+}
+
+.app {
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.app .option {
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.app .active {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.app .option:hover {
+  color: var(--text);
+}
+
+.landing {
+  border: 2px solid var(--landing-text);
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.landing .option {
+  background: transparent;
+  color: var(--landing-muted);
+}
+
+.landing .active {
+  background: var(--landing-yellow);
+  color: var(--landing-text);
+}
+
+.landing .option:hover {
+  color: var(--landing-text);
+}

@@ -1,11 +1,20 @@
 import { useState } from 'react';
 import type { AiDecompositionDraft, Priority, SuggestedTask } from '../types';
-import { PRIORITY_LABELS } from '../types';
+import { PRIORITIES } from '../types';
 import { decomposeEpic } from '../services/ai';
 import { getBacklogColumnId } from '../services/seed';
 import { putTask } from '../services/storage';
 import { useAppData } from '../hooks/useAppData';
+import { useI18n } from '../i18n';
+import type { MessageKey } from '../i18n';
 import styles from './Panel.module.css';
+
+const PRIORITY_KEYS: Record<Priority, MessageKey> = {
+  low: 'priority.low',
+  medium: 'priority.medium',
+  high: 'priority.high',
+  critical: 'priority.critical',
+};
 
 interface Props {
   selectedDocIds: string[];
@@ -17,6 +26,7 @@ function now() {
 
 export function AiPanel({ selectedDocIds }: Props) {
   const { users, refresh } = useAppData();
+  const { t } = useI18n();
   const [epicTitle, setEpicTitle] = useState('');
   const [epicDescription, setEpicDescription] = useState('');
   const [loading, setLoading] = useState(false);
@@ -25,7 +35,7 @@ export function AiPanel({ selectedDocIds }: Props) {
 
   async function handleDecompose() {
     if (!epicTitle.trim()) {
-      setError('Укажите название эпика');
+      setError(t('ai.errorTitle'));
       return;
     }
     setError(null);
@@ -39,7 +49,7 @@ export function AiPanel({ selectedDocIds }: Props) {
       });
       setDraft(result);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Не удалось разбить задачу');
+      setError(e instanceof Error ? e.message : t('ai.errorGeneric'));
     } finally {
       setLoading(false);
     }
@@ -57,7 +67,7 @@ export function AiPanel({ selectedDocIds }: Props) {
     if (!draft) return;
     const backlogId = await getBacklogColumnId();
     if (!backlogId) {
-      setError('Не найдена колонка «Бэклог»');
+      setError(t('ai.errorBacklog'));
       return;
     }
     const ts = now();
@@ -99,34 +109,30 @@ export function AiPanel({ selectedDocIds }: Props) {
     setEpicTitle('');
     setEpicDescription('');
     await refresh();
-    window.alert('Эпик и задачи созданы в «Бэклог»');
+    window.alert(t('ai.createdAlert'));
   }
 
   const hasKey = Boolean(import.meta.env.VITE_OPENAI_API_KEY);
 
   return (
     <div className={styles.panel}>
-      <h2 className={styles.title}>ИИ-постановка</h2>
-      <p className={styles.muted}>
-        {hasKey
-          ? 'Используется OpenAI API из .env'
-          : 'Ключ OpenAI не задан — работает локальное разбиение (fallback).'}
-      </p>
+      <h2 className={styles.title}>{t('ai.title')}</h2>
+      <p className={styles.muted}>{hasKey ? t('ai.hasKey') : t('ai.noKey')}</p>
       {selectedDocIds.length > 0 && (
-        <p className={styles.hint}>В контексте ИИ: {selectedDocIds.length} док.</p>
+        <p className={styles.hint}>{t('ai.contextDocs', { n: selectedDocIds.length })}</p>
       )}
 
       <label className={styles.labelBlock}>
-        Название эпика
+        {t('ai.epicTitle')}
         <input value={epicTitle} onChange={(e) => setEpicTitle(e.target.value)} />
       </label>
       <label className={styles.labelBlock}>
-        Описание
+        {t('ai.description')}
         <textarea
           rows={5}
           value={epicDescription}
           onChange={(e) => setEpicDescription(e.target.value)}
-          placeholder="Большая задача, контекст, дедлайны…"
+          placeholder={t('ai.descriptionPlaceholder')}
         />
       </label>
 
@@ -136,21 +142,21 @@ export function AiPanel({ selectedDocIds }: Props) {
         disabled={loading}
         onClick={() => void handleDecompose()}
       >
-        {loading ? 'Разбиваем…' : 'Разбить на задачи'}
+        {loading ? t('ai.decomposing') : t('ai.decompose')}
       </button>
 
       {error && <p className={styles.error}>{error}</p>}
 
       {draft && (
         <div className={styles.preview}>
-          <h3>Предпросмотр</h3>
+          <h3>{t('ai.preview')}</h3>
           <table className={styles.table}>
             <thead>
               <tr>
-                <th>Название</th>
-                <th>Описание</th>
-                <th>Исполнитель</th>
-                <th>Приоритет</th>
+                <th>{t('ai.colTitle')}</th>
+                <th>{t('ai.colDescription')}</th>
+                <th>{t('ai.colAssignee')}</th>
+                <th>{t('ai.colPriority')}</th>
               </tr>
             </thead>
             <tbody>
@@ -193,9 +199,9 @@ export function AiPanel({ selectedDocIds }: Props) {
                         updateSuggested(i, { priority: e.target.value as Priority })
                       }
                     >
-                      {(Object.keys(PRIORITY_LABELS) as Priority[]).map((p) => (
+                      {PRIORITIES.map((p) => (
                         <option key={p} value={p}>
-                          {PRIORITY_LABELS[p]}
+                          {t(PRIORITY_KEYS[p])}
                         </option>
                       ))}
                     </select>
@@ -205,7 +211,7 @@ export function AiPanel({ selectedDocIds }: Props) {
             </tbody>
           </table>
           <button type="button" className={styles.primaryBtn} onClick={() => void handleCreateOnBoard()}>
-            Создать на доске
+            {t('ai.createOnBoard')}
           </button>
         </div>
       )}

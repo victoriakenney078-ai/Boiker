@@ -1,3 +1,5 @@
+import { useI18n } from '../i18n';
+import { LanguageSwitcher } from './LanguageSwitcher';
 import styles from './Header.module.css';
 
 interface Props {
@@ -17,32 +19,35 @@ export function Header({
   onBackToLanding,
   onSignOut,
 }: Props) {
+  const { t } = useI18n();
+
   return (
     <header className={styles.header}>
       <div className={styles.brand}>
         {onBackToLanding ? (
           <button type="button" className={styles.back} onClick={onBackToLanding}>
-            ← Сайт
+            {t('header.back')}
           </button>
         ) : null}
         <span className={styles.logo}>AivibeBoard</span>
         <span className={styles.project}>{projectName}</span>
       </div>
       <div className={styles.actions}>
+        <LanguageSwitcher variant="app" />
         <input
           type="search"
           className={styles.search}
-          placeholder="Поиск по задачам…"
+          placeholder={t('header.search')}
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
-          aria-label="Поиск по задачам"
+          aria-label={t('header.search')}
         />
         <button type="button" className={styles.primary} onClick={onAddTask}>
-          + Задача
+          {t('header.addTask')}
         </button>
         {onSignOut ? (
           <button type="button" className={styles.signOut} onClick={onSignOut}>
-            Выйти
+            {t('header.signOut')}
           </button>
         ) : null}
       </div>

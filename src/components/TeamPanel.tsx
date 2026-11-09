@@ -2,12 +2,14 @@ import { useState } from 'react';
 import type { User } from '../types';
 import { deleteUser, putUser } from '../services/storage';
 import { useAppData } from '../hooks/useAppData';
+import { useI18n } from '../i18n';
 import styles from './Panel.module.css';
 
 const COLORS = ['#6366f1', '#ec4899', '#14b8a6', '#f59e0b', '#8b5cf6', '#ef4444'];
 
 export function TeamPanel() {
   const { users, refresh } = useAppData();
+  const { t } = useI18n();
   const [name, setName] = useState('');
   const [telegram, setTelegram] = useState('');
 
@@ -27,15 +29,15 @@ export function TeamPanel() {
   }
 
   async function handleDelete(user: User) {
-    if (!window.confirm(`Удалить участника «${user.name}»?`)) return;
+    if (!window.confirm(t('team.confirmDelete', { name: user.name }))) return;
     await deleteUser(user.id);
     await refresh();
   }
 
   async function handleEdit(user: User) {
-    const newName = window.prompt('Имя', user.name);
+    const newName = window.prompt(t('team.promptName'), user.name);
     if (!newName?.trim()) return;
-    const tg = window.prompt('Telegram (@username)', user.telegramUsername ?? '') ?? '';
+    const tg = window.prompt(t('team.promptTelegram'), user.telegramUsername ?? '') ?? '';
     await putUser({
       ...user,
       name: newName.trim(),
@@ -46,20 +48,20 @@ export function TeamPanel() {
 
   return (
     <div className={styles.panel}>
-      <h2 className={styles.title}>Команда</h2>
+      <h2 className={styles.title}>{t('team.title')}</h2>
       <form className={styles.form} onSubmit={(e) => void handleAdd(e)}>
         <input
-          placeholder="Имя"
+          placeholder={t('team.name')}
           value={name}
           onChange={(e) => setName(e.target.value)}
           required
         />
         <input
-          placeholder="@telegram (необязательно)"
+          placeholder={t('team.telegramOptional')}
           value={telegram}
           onChange={(e) => setTelegram(e.target.value)}
         />
-        <button type="submit">Добавить</button>
+        <button type="submit">{t('team.add')}</button>
       </form>
       <ul className={styles.list}>
         {users.map((u) => (
@@ -78,10 +80,10 @@ export function TeamPanel() {
             </div>
             <div className={styles.listActions}>
               <button type="button" onClick={() => void handleEdit(u)}>
-                Изменить
+                {t('team.edit')}
               </button>
               <button type="button" onClick={() => void handleDelete(u)}>
-                Удалить
+                {t('team.delete')}
               </button>
             </div>
           </li>

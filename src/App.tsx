@@ -13,6 +13,7 @@ import { AiPanel } from './components/AiPanel';
 import { TelegramInbox } from './components/TelegramInbox';
 import { TeamPanel } from './components/TeamPanel';
 import { SettingsPanel } from './components/SettingsPanel';
+import { useI18n } from './i18n';
 import styles from './App.module.css';
 
 function AppShell({
@@ -23,6 +24,7 @@ function AppShell({
   onSignOut: () => void;
 }) {
   const { settings, tasks, columns, users, telegram, loading, refresh } = useAppData();
+  const { t } = useI18n();
   const [section, setSection] = useState<AppSection>('board');
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
@@ -52,7 +54,7 @@ function AppShell({
   if (loading) {
     return (
       <div className={styles.loading}>
-        <p>Загрузка AivibeBoard…</p>
+        <p>{t('app.loadingBoard')}</p>
       </div>
     );
   }
@@ -96,6 +98,7 @@ function AppShell({
 type AppView = 'landing' | 'auth' | 'app';
 
 export default function App() {
+  const { t } = useI18n();
   const [view, setView] = useState<AppView>('landing');
   const [ready, setReady] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
@@ -135,7 +138,7 @@ export default function App() {
   if (!ready) {
     return (
       <div className={styles.loading}>
-        <p>Загрузка…</p>
+        <p>{t('app.loading')}</p>
       </div>
     );
   }

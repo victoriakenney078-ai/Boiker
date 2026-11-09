@@ -13,6 +13,7 @@ import { useMemo, useState } from 'react';
 import type { Column, Task } from '../types';
 import { deleteColumn, deleteTask, putColumn, putTask, putTasks } from '../services/storage';
 import { useBoard } from '../hooks/useAppData';
+import { useI18n } from '../i18n';
 import { BoardColumn } from './BoardColumn';
 import { TaskCard } from './TaskCard';
 import styles from './Board.module.css';
@@ -28,6 +29,7 @@ function now() {
 
 export function Board({ search, onOpenTask }: Props) {
   const { columns, tasks, users, refresh } = useBoard();
+  const { t } = useI18n();
   const [activeId, setActiveId] = useState<string | null>(null);
 
   const sensors = useSensors(
@@ -115,7 +117,7 @@ export function Board({ search, onOpenTask }: Props) {
   }
 
   async function handleAddColumn() {
-    const title = window.prompt('Название колонки');
+    const title = window.prompt(t('board.columnName'));
     if (!title?.trim()) return;
     const order = columns.length;
     await putColumn({ id: crypto.randomUUID(), title: title.trim(), order });
@@ -123,7 +125,7 @@ export function Board({ search, onOpenTask }: Props) {
   }
 
   async function handleRename(column: Column) {
-    const title = window.prompt('Новое название', column.title);
+    const title = window.prompt(t('board.columnRename'), column.title);
     if (!title?.trim() || title === column.title) return;
     await putColumn({ ...column, title: title.trim() });
     await refresh();
@@ -133,14 +135,14 @@ export function Board({ search, onOpenTask }: Props) {
     const inCol = tasks.filter((t) => t.columnId === column.id);
     if (inCol.length > 0) {
       const ok = window.confirm(
-        `В колонке «${column.title}» ${inCol.length} задач. Удалить колонку и все задачи в ней?`,
+        t('board.deleteColumnTasks', { title: column.title, count: inCol.length }),
       );
       if (!ok) return;
       for (const t of inCol) {
         await deleteTask(t.id);
       }
     } else {
-      const ok = window.confirm(`Удалить колонку «${column.title}»?`);
+      const ok = window.confirm(t('board.deleteColumn', { title: column.title }));
       if (!ok) return;
     }
     await deleteColumn(column.id);
@@ -169,7 +171,7 @@ export function Board({ search, onOpenTask }: Props) {
             />
           ))}
           <button type="button" className={styles.addColumn} onClick={() => void handleAddColumn()}>
-            + Колонка
+            {t('board.addColumn')}
           </button>
         </div>
         <DragOverlay>
