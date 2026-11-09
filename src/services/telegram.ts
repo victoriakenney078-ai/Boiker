@@ -1,8 +1,8 @@
 import type { Task, TelegramInbound, TelegramWebhookPayload } from '../types';
 import { isoNow } from '../lib/isoNow';
 import { tStatic } from '../i18n';
-import { getBacklogColumnId } from './seed';
-import { getSettings, getTelegramInbox, putTask, putTelegramInbound } from './storage';
+import { getBacklogColumnId, putTask } from './boardRemote';
+import { getSettings, getTelegramInbox, putTelegramInbound } from './storage';
 
 function uid(): string {
   return crypto.randomUUID();
@@ -63,8 +63,11 @@ export async function updateTelegramItem(item: TelegramInbound): Promise<void> {
   await putTelegramInbound(item);
 }
 
-export async function createTaskFromInbound(item: TelegramInbound): Promise<string | null> {
-  const backlogId = await getBacklogColumnId();
+export async function createTaskFromInbound(
+  item: TelegramInbound,
+  boardId: string,
+): Promise<string | null> {
+  const backlogId = await getBacklogColumnId(boardId);
   if (!backlogId) return null;
 
   const ts = isoNow();
@@ -72,6 +75,7 @@ export async function createTaskFromInbound(item: TelegramInbound): Promise<stri
   const taskId = crypto.randomUUID();
   const task: Task = {
     id: taskId,
+    boardId,
     columnId: backlogId,
     title,
     description: item.text,

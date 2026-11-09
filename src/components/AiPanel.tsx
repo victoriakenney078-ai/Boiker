@@ -12,7 +12,7 @@ interface Props {
 }
 
 export function AiPanel({ selectedDocIds }: Props) {
-  const { users, refresh } = useAppData();
+  const { users, refresh, activeBoardId } = useAppData();
   const { t } = useI18n();
   const { loading, error, setError, draft, setDraft, run } = useAiDecompose();
   const [epicTitle, setEpicTitle] = useState('');
@@ -43,8 +43,8 @@ export function AiPanel({ selectedDocIds }: Props) {
   }
 
   async function handleCreateOnBoard() {
-    if (!draft) return;
-    const result = await createEpicOnBoard(draft);
+    if (!draft || !activeBoardId) return;
+    const result = await createEpicOnBoard(draft, activeBoardId);
     if (!result.ok) {
       setError(t('ai.errorBacklog'));
       return;

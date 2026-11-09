@@ -1,5 +1,12 @@
-import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
+import {
+  openDB,
+  type DBSchema,
+  type IDBPDatabase,
+  type IDBPTransaction,
+  type StoreNames,
+} from 'idb';
 import type {
+  Board,
   Column,
   KnowledgeDoc,
   ProjectSettings,
@@ -10,6 +17,7 @@ import type {
 
 interface AivibeDB extends DBSchema {
   users: { key: string; value: User };
+  boards: { key: string; value: Board };
   columns: { key: string; value: Column };
   tasks: { key: string; value: Task; indexes: { 'by-column': string } };
   knowledgeMeta: { key: string; value: KnowledgeDoc };
@@ -19,22 +27,67 @@ interface AivibeDB extends DBSchema {
 }
 
 const DB_NAME = 'aivibeboard';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 let dbPromise: Promise<IDBPDatabase<AivibeDB>> | null = null;
+
+function boardNameFromSettings(stored: boolean | ProjectSettings | undefined): string {
+  if (stored && typeof stored === 'object' && stored.projectName.trim()) {
+    return stored.projectName.trim();
+  }
+  return 'Демо';
+}
+
+async function migrateLegacyDataToBoard(
+  transaction: IDBPTransaction<AivibeDB, StoreNames<AivibeDB>[], 'versionchange'>,
+): Promise<void> {
+  const columnsStore = transaction.objectStore('columns');
+  const tasksStore = transaction.objectStore('tasks');
+  const columns = await columnsStore.getAll();
+  const tasks = await tasksStore.getAll();
+  const legacyColumns = columns.filter((column) => !column.boardId);
+  const legacyTasks = tasks.filter((task) => !task.boardId);
+  if (legacyColumns.length === 0 && legacyTasks.length === 0) return;
+
+  const settings = await transaction.objectStore('meta').get('settings');
+  const now = new Date().toISOString();
+  const board: Board = {
+    id: crypto.randomUUID(),
+    name: boardNameFromSettings(settings),
+    description: '',
+    memberIds: [],
+    createdAt: now,
+    updatedAt: now,
+  };
+  await transaction.objectStore('boards').put(board);
+  for (const column of legacyColumns) {
+    await columnsStore.put({ ...column, boardId: board.id });
+  }
+  for (const task of legacyTasks) {
+    await tasksStore.put({ ...task, boardId: board.id });
+  }
+}
 
 function getDb() {
   if (!dbPromise) {
     dbPromise = openDB<AivibeDB>(DB_NAME, DB_VERSION, {
-      upgrade(db) {
-        db.createObjectStore('users', { keyPath: 'id' });
-        db.createObjectStore('columns', { keyPath: 'id' });
-        const tasks = db.createObjectStore('tasks', { keyPath: 'id' });
-        tasks.createIndex('by-column', 'columnId');
-        db.createObjectStore('knowledgeMeta', { keyPath: 'id' });
-        db.createObjectStore('knowledgeText');
-        db.createObjectStore('telegram', { keyPath: 'id' });
-        db.createObjectStore('meta');
+      async upgrade(db, oldVersion, _newVersion, transaction) {
+        if (oldVersion < 1) {
+          db.createObjectStore('users', { keyPath: 'id' });
+          db.createObjectStore('columns', { keyPath: 'id' });
+          const tasks = db.createObjectStore('tasks', { keyPath: 'id' });
+          tasks.createIndex('by-column', 'columnId');
+          db.createObjectStore('knowledgeMeta', { keyPath: 'id' });
+          db.createObjectStore('knowledgeText');
+          db.createObjectStore('telegram', { keyPath: 'id' });
+          db.createObjectStore('meta');
+        }
+        if (oldVersion < 2) {
+          db.createObjectStore('boards', { keyPath: 'id' });
+        }
+        if (oldVersion >= 1 && oldVersion < 2) {
+          await migrateLegacyDataToBoard(transaction);
+        }
       },
     });
   }
@@ -64,6 +117,40 @@ export async function putUser(user: User): Promise<void> {
 export async function deleteUser(id: string): Promise<void> {
   const db = await getDb();
   await db.delete('users', id);
+}
+
+function normalizeBoard(board: Board): Board {
+  return {
+    ...board,
+    description: board.description ?? '',
+    memberIds: Array.isArray(board.memberIds) ? board.memberIds : [],
+  };
+}
+
+export async function getAllBoards(): Promise<Board[]> {
+  const db = await getDb();
+  const boards = await db.getAll('boards');
+  return boards.map(normalizeBoard).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+}
+
+export async function putBoard(board: Board): Promise<void> {
+  const db = await getDb();
+  await db.put('boards', board);
+}
+
+export async function deleteBoard(id: string): Promise<void> {
+  const db = await getDb();
+  const tx = db.transaction(['boards', 'columns', 'tasks'], 'readwrite');
+  const [columns, tasks] = await Promise.all([
+    tx.objectStore('columns').getAll(),
+    tx.objectStore('tasks').getAll(),
+  ]);
+  await Promise.all([
+    ...columns.filter((column) => column.boardId === id).map((column) => tx.objectStore('columns').delete(column.id)),
+    ...tasks.filter((task) => task.boardId === id).map((task) => tx.objectStore('tasks').delete(task.id)),
+    tx.objectStore('boards').delete(id),
+  ]);
+  await tx.done;
 }
 
 export async function getAllColumns(): Promise<Column[]> {

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { Priority, Task, TaskSource, User } from '../types';
 import { PRIORITIES } from '../types';
-import { deleteTask, putTask } from '../services/storage';
+import { deleteTask, putTask } from '../services/boardRemote';
 import { isoNow } from '../lib/isoNow';
 import { PRIORITY_KEYS, SOURCE_KEYS, useI18n } from '../i18n';
 import styles from './TaskModal.module.css';
@@ -11,15 +11,17 @@ interface Props {
   users: User[];
   tasks: Task[];
   defaultColumnId: string;
+  boardId: string;
   open: boolean;
   onClose: () => void;
   onSaved: () => void;
 }
 
-function emptyTask(columnId: string): Task {
+function emptyTask(columnId: string, boardId: string): Task {
   const ts = isoNow();
   return {
     id: crypto.randomUUID(),
+    boardId,
     columnId,
     title: '',
     description: '',
@@ -39,12 +41,13 @@ export function TaskModal({
   users,
   tasks,
   defaultColumnId,
+  boardId,
   open,
   onClose,
   onSaved,
 }: Props) {
   const { t } = useI18n();
-  const [draft, setDraft] = useState<Task>(() => emptyTask(defaultColumnId));
+  const [draft, setDraft] = useState<Task>(() => emptyTask(defaultColumnId, boardId));
   const [labelsInput, setLabelsInput] = useState('');
   const [newSubtask, setNewSubtask] = useState('');
 
@@ -54,12 +57,12 @@ export function TaskModal({
         setDraft({ ...task });
         setLabelsInput(task.labels.join(', '));
       } else {
-        setDraft(emptyTask(defaultColumnId));
+        setDraft(emptyTask(defaultColumnId, boardId));
         setLabelsInput('');
       }
       setNewSubtask('');
     }
-  }, [open, task, defaultColumnId]);
+  }, [open, task, defaultColumnId, boardId]);
 
   if (!open) return null;
 

@@ -1,18 +1,19 @@
 import type { AiDecompositionDraft } from '../types';
 import { isoNow } from '../lib/isoNow';
-import { getBacklogColumnId } from './seed';
-import { putTask } from './storage';
+import { getBacklogColumnId, putTask } from './boardRemote';
 
 export async function createEpicOnBoard(
   draft: AiDecompositionDraft,
+  boardId: string,
 ): Promise<{ ok: true } | { ok: false; reason: 'no-backlog' }> {
-  const backlogId = await getBacklogColumnId();
+  const backlogId = await getBacklogColumnId(boardId);
   if (!backlogId) return { ok: false, reason: 'no-backlog' };
 
   const ts = isoNow();
   const epicId = crypto.randomUUID();
   await putTask({
     id: epicId,
+    boardId,
     columnId: backlogId,
     title: draft.epicTitle,
     description: draft.epicDescription,
@@ -30,6 +31,7 @@ export async function createEpicOnBoard(
     const createdAt = isoNow();
     await putTask({
       id: crypto.randomUUID(),
+      boardId,
       columnId: backlogId,
       title: suggested.title,
       description: suggested.description,

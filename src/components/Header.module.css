@@ -15,9 +15,15 @@
   gap: 0.15rem;
 }
 
+.backs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 0.15rem;
+}
+
 .back {
   align-self: flex-start;
-  margin-bottom: 0.15rem;
   padding: 0;
   border: none;
   background: none;

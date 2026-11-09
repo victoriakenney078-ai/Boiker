@@ -8,8 +8,18 @@ export interface User {
   telegramUsername?: string;
 }
 
+export interface Board {
+  id: string;
+  name: string;
+  description: string;
+  memberIds: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Column {
   id: string;
+  boardId: string;
   title: string;
   order: number;
 }
@@ -22,6 +32,7 @@ export interface Subtask {
 
 export interface Task {
   id: string;
+  boardId: string;
   columnId: string;
   title: string;
   description: string;

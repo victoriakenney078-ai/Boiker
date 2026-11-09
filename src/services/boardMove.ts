@@ -1,7 +1,7 @@
 import { arrayMove } from '@dnd-kit/sortable';
 import type { Column, Task } from '../types';
 import { isoNow } from '../lib/isoNow';
-import { putTask, putTasks } from './storage';
+import { putTask, putTasks } from './boardRemote';
 
 export function tasksInColumn(tasks: Task[], columnId: string): Task[] {
   return tasks

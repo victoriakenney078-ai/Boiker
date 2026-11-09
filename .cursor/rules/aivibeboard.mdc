@@ -5,16 +5,17 @@ alwaysApply: true
 
 # AivibeBoard
 
-Одностраничное приложение: Vite + React 18 + TypeScript. Без React Router: лендинг, форма входа и доска переключаются `useAppSession` в `App.tsx`; шелл доски — `AppShell` (sidebar + модалки). Персистентность доски: **IndexedDB** (`src/services/storage.ts`); сессия — **Supabase Auth** (`src/services/supabase.ts`). UI и ошибки — **русский, английский, иврит** (`src/i18n/`, переключатель в шапках, для `he` — `dir="rtl"`). Бренд в header: **AivibeBoard** + имя проекта.
+Одностраничное приложение: Vite + React 18 + TypeScript. Без React Router: лендинг, форма входа и доска переключаются `useAppSession` в `App.tsx`; шелл доски — `AppShell` (sidebar + модалки). Персистентность досок (boards, колонки, задачи): **Supabase Postgres** (`src/services/boardRemote.ts`, RLS по `auth.uid()`). Остальное (команда, знания, Telegram, настройки) — **IndexedDB** (`src/services/storage.ts`). Сессия — **Supabase Auth** (`src/services/supabase.ts`). UI и ошибки — **русский, английский, иврит** (`src/i18n/`, переключатель в шапках, для `he` — `dir="rtl"`). Бренд в header: **AivibeBoard** + имя проекта.
 
 ## Структура
 
-- `src/types/` — `User`, `Column`, `Task`, `KnowledgeDoc`, `TelegramInbound`, `AiDecompositionDraft`, `ProjectSettings`
+- `src/types/` — `Board`, `User`, `Column`, `Task`, `KnowledgeDoc`, `TelegramInbound`, `AiDecompositionDraft`, `ProjectSettings`
 - `src/lib/` — общие хелперы (`isoNow`)
-- `src/services/` — `storage`, `ai`, `aiBoard`, `knowledge`, `telegram`, `boardMove`, `authErrors`, `supabase`, `seed`
+- `src/services/` — `boardRemote`, `boardErrors`, `storage`, `ai`, `aiBoard`, `knowledge`, `telegram`, `boardMove`, `authErrors`, `supabase`, `seed`
 - `src/hooks/` — `useAppData`, `useAppSession`, `useAiDecompose`, `useBoardDnd`
 - `src/i18n/` — словари `ru` / `en` / `he`, `I18nProvider`, `useI18n`, `labels`
-- `src/components/` — AppShell, Board, TaskModal, KnowledgePanel, AiPanel, TelegramInbox, Sidebar, Header, LanguageSwitcher
+- `src/components/` — BoardsPage, BoardFormModal, BoardDeleteDialog, AppShell, Board, TaskModal, KnowledgePanel, AiPanel, TelegramInbox, Sidebar, Header, LanguageSwitcher
+- `supabase/migrations/` — SQL для таблиц досок (см. README)
 - `src/components/landing/` — `LandingPage`, `AuthPage` (email + пароль)
 
 Секреты только через `import.meta.env` (`VITE_OPENAI_*`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`); не коммитить `.env`. Без URL и anon-ключа клиент не стартует.
@@ -27,6 +28,6 @@ alwaysApply: true
 
 ## Не расширять без явного запроса
 
-Вход уже есть: email и пароль через Supabase, без ролей. Не добавлять роли, multi-project, WebSocket sync, embeddings/RAG и production API без явного запроса. Доска не привязана к пользователю Supabase — данные остаются в IndexedDB браузера.
+Вход уже есть: email и пароль через Supabase, без ролей. Не добавлять роли, multi-project, WebSocket sync, embeddings/RAG и production API без явного запроса. Доски привязаны к владельцу Supabase (`owner_id`); `member_ids` — метаданные о доступе команды из IndexedDB.
 
 Полная спецификация генерации: [CURSOR_PROMPT.md](../../CURSOR_PROMPT.md).

@@ -10,7 +10,7 @@ import { useI18n } from '../i18n';
 import styles from './Panel.module.css';
 
 export function TelegramInbox() {
-  const { telegram, tasks, refresh } = useAppData();
+  const { telegram, tasks, refresh, activeBoardId } = useAppData();
   const { t, dateLocale } = useI18n();
   const [linkTaskId, setLinkTaskId] = useState('');
 
@@ -20,7 +20,11 @@ export function TelegramInbox() {
   }
 
   async function createTaskFrom(item: TelegramInbound) {
-    const taskId = await createTaskFromInbound(item);
+    if (!activeBoardId) {
+      window.alert(t('telegram.noBacklog'));
+      return;
+    }
+    const taskId = await createTaskFromInbound(item, activeBoardId);
     if (!taskId) {
       window.alert(t('telegram.noBacklog'));
       return;

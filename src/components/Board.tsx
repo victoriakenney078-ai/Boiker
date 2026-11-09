@@ -5,7 +5,7 @@ import {
 } from '@dnd-kit/core';
 import { useMemo } from 'react';
 import type { Column, Task } from '../types';
-import { deleteColumn, deleteTask, putColumn } from '../services/storage';
+import { deleteColumn, deleteTask, putColumn } from '../services/boardRemote';
 import { tasksInColumn } from '../services/boardMove';
 import { useBoard } from '../hooks/useAppData';
 import { useBoardDnd } from '../hooks/useBoardDnd';
@@ -20,7 +20,7 @@ interface Props {
 }
 
 export function Board({ search, onOpenTask }: Props) {
-  const { columns, tasks, users, refresh } = useBoard();
+  const { columns, tasks, users, refresh, activeBoardId } = useBoard();
   const { t } = useI18n();
   const { sensors, activeTask, onDragStart, onDragEnd } = useBoardDnd(columns, tasks, refresh);
 
@@ -43,8 +43,13 @@ export function Board({ search, onOpenTask }: Props) {
 
   async function handleAddColumn() {
     const title = window.prompt(t('board.columnName'));
-    if (!title?.trim()) return;
-    await putColumn({ id: crypto.randomUUID(), title: title.trim(), order: columns.length });
+    if (!title?.trim() || !activeBoardId) return;
+    await putColumn({
+      id: crypto.randomUUID(),
+      boardId: activeBoardId,
+      title: title.trim(),
+      order: columns.length,
+    });
     await refresh();
   }
 
