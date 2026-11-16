@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from 'react';
 import { supabase } from '../../services/supabase';
 import { authErrorText } from '../../services/authErrors';
+import { saveProfileRole } from '../../services/profileRemote';
+import { IT_ROLE_KEYS, IT_ROLES, isItRole, type ItRole } from '../../lib/itRoles';
 import { useI18n } from '../../i18n';
 import { LanguageSwitcher } from '../LanguageSwitcher';
 import styles from './AuthPage.module.css';
@@ -16,6 +18,7 @@ export function AuthPage({ onBack, onSuccess }: Props) {
   const { t } = useI18n();
   const [mode, setMode] = useState<Mode>('login');
   const [email, setEmail] = useState('');
+  const [role, setRole] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [error, setError] = useState('');
@@ -39,6 +42,7 @@ export function AuthPage({ onBack, onSuccess }: Props) {
       return;
     }
 
+    let chosenRole: ItRole | null = null;
     if (mode === 'signup') {
       if (password.length < 6) {
         setError(t('auth.passwordMin'));
@@ -48,6 +52,11 @@ export function AuthPage({ onBack, onSuccess }: Props) {
         setError(t('auth.passwordMismatch'));
         return;
       }
+      if (!isItRole(role)) {
+        setError(t('auth.needRole'));
+        return;
+      }
+      chosenRole = role;
     }
 
     setPending(true);
@@ -65,16 +74,29 @@ export function AuthPage({ onBack, onSuccess }: Props) {
         return;
       }
 
+      if (!chosenRole) {
+        setError(t('auth.needRole'));
+        return;
+      }
+
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: trimmedEmail,
         password,
-        options: { emailRedirectTo: window.location.origin },
+        options: {
+          emailRedirectTo: window.location.origin,
+          data: { role: chosenRole },
+        },
       });
       if (signUpError) {
         setError(authErrorText(signUpError, t));
         return;
       }
-      if (data.session) {
+      if (data.session && data.user) {
+        const saved = await saveProfileRole(data.user.id, chosenRole);
+        if (!saved) {
+          setError(t('auth.errorGeneric'));
+          return;
+        }
         onSuccess();
         return;
       }
@@ -127,6 +149,26 @@ export function AuthPage({ onBack, onSuccess }: Props) {
               required
             />
           </label>
+          {mode === 'signup' ? (
+            <label className={styles.field}>
+              {t('auth.role')}
+              <select
+                value={role}
+                onChange={(event) => {
+                  setRole(event.target.value);
+                  setError('');
+                }}
+                required
+              >
+                <option value="">{t('auth.rolePlaceholder')}</option>
+                {IT_ROLES.map((id) => (
+                  <option key={id} value={id}>
+                    {t(IT_ROLE_KEYS[id])}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
           <label className={styles.field}>
             {t('auth.password')}
             <input

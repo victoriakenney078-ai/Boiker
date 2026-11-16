@@ -8,21 +8,25 @@ import styles from './BoardColumn.module.css';
 interface Props {
   column: Column;
   tasks: Task[];
-  users: User[];
+  boardMembers: User[];
   onOpenTask: (task: Task) => void;
   onRename: (column: Column) => void;
   onDelete: (column: Column) => void;
   onAddTask: (columnId: string) => void;
+  onAssignTask: (task: Task, assigneeId: string | null) => void;
+  onDeleteTask: (task: Task) => void;
 }
 
 export function BoardColumn({
   column,
   tasks,
-  users,
+  boardMembers,
   onOpenTask,
   onRename,
   onDelete,
   onAddTask,
+  onAssignTask,
+  onDeleteTask,
 }: Props) {
   const { t } = useI18n();
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
@@ -48,7 +52,14 @@ export function BoardColumn({
       >
         <SortableContext items={ids} strategy={verticalListSortingStrategy}>
           {tasks.map((task) => (
-            <TaskCard key={task.id} task={task} users={users} onOpen={onOpenTask} />
+            <TaskCard
+              key={task.id}
+              task={task}
+              boardMembers={boardMembers}
+              onOpen={onOpenTask}
+              onAssign={onAssignTask}
+              onDelete={onDeleteTask}
+            />
           ))}
         </SortableContext>
       </div>

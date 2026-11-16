@@ -5,7 +5,8 @@ import {
 } from '@dnd-kit/core';
 import { useMemo } from 'react';
 import type { Column, Task } from '../types';
-import { deleteColumn, deleteTask, putColumn } from '../services/boardRemote';
+import { deleteColumn, deleteTask, putColumn, putTask } from '../services/boardRemote';
+import { isoNow } from '../lib/isoNow';
 import { tasksInColumn } from '../services/boardMove';
 import { useBoard } from '../hooks/useAppData';
 import { useBoardDnd } from '../hooks/useBoardDnd';
@@ -20,9 +21,15 @@ interface Props {
 }
 
 export function Board({ search, onOpenTask }: Props) {
-  const { columns, tasks, users, refresh, activeBoardId } = useBoard();
+  const { columns, tasks, users, boards, refresh, activeBoardId } = useBoard();
   const { t } = useI18n();
   const { sensors, activeTask, onDragStart, onDragEnd } = useBoardDnd(columns, tasks, refresh);
+
+  const boardMembers = useMemo(() => {
+    const board = boards.find((b) => b.id === activeBoardId);
+    if (!board || board.memberIds.length === 0) return users;
+    return users.filter((u) => board.memberIds.includes(u.id));
+  }, [boards, activeBoardId, users]);
 
   const q = search.trim().toLowerCase();
   const filteredTasks = useMemo(() => {
@@ -60,6 +67,17 @@ export function Board({ search, onOpenTask }: Props) {
     await refresh();
   }
 
+  async function handleAssignTask(task: Task, assigneeId: string | null) {
+    await putTask({ ...task, assigneeId, updatedAt: isoNow() });
+    await refresh();
+  }
+
+  async function handleDeleteTask(task: Task) {
+    if (!window.confirm(t('task.confirmDelete'))) return;
+    await deleteTask(task.id);
+    await refresh();
+  }
+
   async function handleDelete(column: Column) {
     const inCol = tasks.filter((task) => task.columnId === column.id);
     if (inCol.length > 0) {
@@ -92,11 +110,13 @@ export function Board({ search, onOpenTask }: Props) {
               key={col.id}
               column={col}
               tasks={tasksByColumn.get(col.id) ?? []}
-              users={users}
+              boardMembers={boardMembers}
               onOpenTask={onOpenTask}
               onRename={handleRename}
               onDelete={handleDelete}
               onAddTask={(columnId) => onOpenTask(null, columnId)}
+              onAssignTask={(task, assigneeId) => void handleAssignTask(task, assigneeId)}
+              onDeleteTask={(task) => void handleDeleteTask(task)}
             />
           ))}
           <button type="button" className={styles.addColumn} onClick={() => void handleAddColumn()}>
@@ -106,7 +126,13 @@ export function Board({ search, onOpenTask }: Props) {
         <DragOverlay>
           {activeTask ? (
             <div className={styles.overlay}>
-              <TaskCard task={activeTask} users={users} onOpen={() => {}} />
+              <TaskCard
+                task={activeTask}
+                boardMembers={boardMembers}
+                onOpen={() => {}}
+                onAssign={() => {}}
+                onDelete={() => {}}
+              />
             </div>
           ) : null}
         </DragOverlay>

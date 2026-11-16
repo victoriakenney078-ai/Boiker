@@ -147,8 +147,8 @@ export function useAppData(): AppData {
 }
 
 export function useBoard() {
-  const { columns, tasks, users, refresh, activeBoardId } = useAppData();
-  return { columns, tasks, users, refresh, activeBoardId };
+  const { columns, tasks, users, boards, refresh, activeBoardId } = useAppData();
+  return { columns, tasks, users, boards, refresh, activeBoardId };
 }
 
 export function useKnowledge() {

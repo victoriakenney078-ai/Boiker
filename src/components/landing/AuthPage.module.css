@@ -124,17 +124,24 @@
   font-weight: 600;
 }
 
-.field input {
+.field input,
+.field select {
   padding: 0.65rem 0.75rem;
   border: 2px solid var(--landing-border);
   border-radius: 12px;
+  font: inherit;
   font-size: 1rem;
   font-weight: 500;
   color: var(--landing-text);
   background: #fff;
 }
 
-.field input:focus {
+.field select {
+  cursor: pointer;
+}
+
+.field input:focus,
+.field select:focus {
   outline: 2px solid var(--landing-accent-2);
   border-color: var(--landing-accent-2);
 }

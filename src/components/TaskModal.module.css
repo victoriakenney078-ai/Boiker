@@ -48,6 +48,13 @@
   font-size: 0.9rem;
 }
 
+.membersHint {
+  margin: -0.35rem 0 0.85rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
 .field {
   display: flex;
   flex-direction: column;

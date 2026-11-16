@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { Priority, Task, TaskSource, User } from '../types';
+import type { Column, Priority, Task, TaskSource, User } from '../types';
 import { PRIORITIES } from '../types';
 import { deleteTask, putTask } from '../services/boardRemote';
 import { isoNow } from '../lib/isoNow';
@@ -8,7 +8,8 @@ import styles from './TaskModal.module.css';
 
 interface Props {
   task: Task | null;
-  users: User[];
+  boardMembers: User[];
+  columns: Column[];
   tasks: Task[];
   defaultColumnId: string;
   boardId: string;
@@ -38,7 +39,8 @@ function emptyTask(columnId: string, boardId: string): Task {
 
 export function TaskModal({
   task,
-  users,
+  boardMembers,
+  columns,
   tasks,
   defaultColumnId,
   boardId,
@@ -147,6 +149,24 @@ export function TaskModal({
           />
         </label>
 
+        <label className={styles.field}>
+          {t('task.column')}
+          <select
+            value={draft.columnId}
+            onChange={(e) => setDraft({ ...draft, columnId: e.target.value })}
+          >
+            {columns.map((col) => (
+              <option key={col.id} value={col.id}>
+                {col.title}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        {boardMembers.length === 0 && (
+          <p className={styles.membersHint}>{t('task.membersHint')}</p>
+        )}
+
         <div className={styles.row}>
           <label className={styles.field}>
             {t('task.assignee')}
@@ -160,7 +180,7 @@ export function TaskModal({
               }
             >
               <option value="">{t('task.unassigned')}</option>
-              {users.map((u) => (
+              {boardMembers.map((u) => (
                 <option key={u.id} value={u.id}>
                   {u.name}
                 </option>

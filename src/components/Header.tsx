@@ -1,3 +1,6 @@
+import { useEffect, useState } from 'react';
+import { IT_ROLE_KEYS } from '../lib/itRoles';
+import { PROFILE_ROLE_EVENT, fetchMyRole } from '../services/profileRemote';
 import { useI18n } from '../i18n';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import styles from './Header.module.css';
@@ -22,6 +25,24 @@ export function Header({
   onSignOut,
 }: Props) {
   const { t } = useI18n();
+  const [roleLabel, setRoleLabel] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    async function loadRole() {
+      const role = await fetchMyRole();
+      if (active) setRoleLabel(role ? t(IT_ROLE_KEYS[role]) : null);
+    }
+    void loadRole();
+    function onRoleChanged() {
+      void loadRole();
+    }
+    window.addEventListener(PROFILE_ROLE_EVENT, onRoleChanged);
+    return () => {
+      active = false;
+      window.removeEventListener(PROFILE_ROLE_EVENT, onRoleChanged);
+    };
+  }, [t]);
 
   return (
     <header className={styles.header}>
@@ -60,6 +81,7 @@ export function Header({
             {t('header.addTask')}
           </button>
         ) : null}
+        {roleLabel ? <span className={styles.role}>{roleLabel}</span> : null}
         {onSignOut ? (
           <button type="button" className={styles.signOut} onClick={onSignOut}>
             {t('header.signOut')}

@@ -45,6 +45,11 @@ export function AppShell({ onBackToLanding, onSignOut }: Props) {
   const telegramUnread = telegram.filter((item) => !item.processed).length;
   const activeBoard = boards.find((board) => board.id === activeBoardId) ?? null;
 
+  const boardMembers = useMemo(() => {
+    if (!activeBoard || activeBoard.memberIds.length === 0) return users;
+    return users.filter((user) => activeBoard.memberIds.includes(user.id));
+  }, [activeBoard, users]);
+
   function openBoard(boardId: string) {
     setSection('board');
     setSearch('');
@@ -118,7 +123,8 @@ export function AppShell({ onBackToLanding, onSignOut }: Props) {
       <TaskModal
         open={modalOpen}
         task={editingTask}
-        users={users}
+        boardMembers={boardMembers}
+        columns={columns}
         tasks={tasks}
         defaultColumnId={defaultColumnId}
         boardId={activeBoard.id}

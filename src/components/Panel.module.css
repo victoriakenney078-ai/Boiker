@@ -191,11 +191,20 @@
 }
 
 .labelBlock input,
-.labelBlock textarea {
+.labelBlock textarea,
+.labelBlock select {
   font-weight: 400;
   padding: 0.5rem 0.65rem;
   border: 1px solid var(--border);
   border-radius: 8px;
+  font: inherit;
+  font-size: 0.95rem;
+  color: var(--text);
+  background: #fff;
+}
+
+.labelBlock select {
+  cursor: pointer;
 }
 
 .preview {

@@ -81,6 +81,13 @@
   background: var(--accent-hover);
 }
 
+.role {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+}
+
 .signOut {
   background: transparent;
   color: var(--text);
