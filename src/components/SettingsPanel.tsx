@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { IT_ROLE_KEYS, IT_ROLES, isItRole } from '../lib/itRoles';
 import { putSettings } from '../services/storage';
+import { createTelegramLinkCode, fetchTelegramLinkStatus } from '../services/telegramLink';
 import { fetchMyRole, notifyProfileRoleChanged, saveProfileRole } from '../services/profileRemote';
 import { supabase } from '../services/supabase';
 import { useAppData } from '../hooks/useAppData';
@@ -14,6 +15,10 @@ export function SettingsPanel() {
   const [telegramSecret, setTelegramSecret] = useState(settings.telegramWebhookSecret ?? '');
   const [role, setRole] = useState('');
   const [error, setError] = useState('');
+  const [linkCode, setLinkCode] = useState('');
+  const [telegramLinked, setTelegramLinked] = useState(false);
+  const [telegramUsername, setTelegramUsername] = useState<string | null>(null);
+  const [linkPending, setLinkPending] = useState(false);
 
   useEffect(() => {
     setProjectName(settings.projectName);
@@ -29,6 +34,34 @@ export function SettingsPanel() {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    void fetchTelegramLinkStatus().then((status) => {
+      if (!active) return;
+      setTelegramLinked(status.linked);
+      setTelegramUsername(status.username);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  async function handleTelegramLink() {
+    setLinkPending(true);
+    setLinkCode('');
+    setError('');
+    try {
+      const result = await createTelegramLinkCode();
+      if ('error' in result) {
+        setError(t('settings.telegramLinkError'));
+        return;
+      }
+      setLinkCode(result.code);
+    } finally {
+      setLinkPending(false);
+    }
+  }
 
   async function handleSave(e: FormEvent) {
     e.preventDefault();
@@ -92,6 +125,37 @@ export function SettingsPanel() {
           />
         </label>
         <p className={styles.muted}>{t('settings.aiServer')}</p>
+        <section className={styles.telegramBlock} aria-labelledby="telegram-bot-settings">
+          <h3 id="telegram-bot-settings" className={styles.subheading}>
+            {t('settings.telegramBotTitle')}
+          </h3>
+          <p className={styles.muted}>
+            {t('settings.telegramBotHandle')} · {t('settings.telegramBotLead')}
+          </p>
+          {telegramLinked ? (
+            <p className={styles.hint}>
+              {t('settings.telegramLinked', {
+                username: telegramUsername
+                  ? t('settings.telegramLinkedUser', { username: telegramUsername })
+                  : '',
+              })}
+            </p>
+          ) : null}
+          {linkCode ? (
+            <p className={styles.hint}>
+              {t('settings.telegramLinkPending')}{' '}
+              <code>{t('settings.telegramLinkCommand', { code: linkCode })}</code>
+            </p>
+          ) : null}
+          <button
+            type="button"
+            className={styles.secondaryBtn}
+            disabled={linkPending}
+            onClick={() => void handleTelegramLink()}
+          >
+            {t('settings.telegramLinkGenerate')}
+          </button>
+        </section>
         {error ? (
           <p className={styles.error} role="alert">
             {error}

@@ -281,6 +281,16 @@ export const he: Messages = {
     save: 'שמירה',
     saved: 'ההגדרות נשמרו',
     defaultProject: 'דמו',
+    telegramBotTitle: 'בוט טלגרם',
+    telegramBotLead:
+      'הבוט מציג את הלוחות שלכם בלחיצה על «הלוחות שלי». קודם קשרו את החשבון עם קוד למטה.',
+    telegramBotHandle: '@xccxg_FJ_Bot',
+    telegramLinkGenerate: 'קוד לטלגרם',
+    telegramLinkPending: 'הקוד בתוקף 15 דקות. שלחו לבוט:',
+    telegramLinkCommand: '/start {code}',
+    telegramLinked: 'טלגרם מחובר{username}',
+    telegramLinkedUser: ' (@{username})',
+    telegramLinkError: 'לא ניתן ליצור קוד. בדקו שנכנסתם למערכת.',
   },
   boardChat: {
     title: 'תכנון',

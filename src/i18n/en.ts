@@ -281,6 +281,16 @@ export const en: Messages = {
     save: 'Save',
     saved: 'Settings saved',
     defaultProject: 'Demo',
+    telegramBotTitle: 'Telegram bot',
+    telegramBotLead:
+      'The bot lists your boards via “My boards”. Link your account with a code below first.',
+    telegramBotHandle: '@xccxg_FJ_Bot',
+    telegramLinkGenerate: 'Telegram link code',
+    telegramLinkPending: 'Code valid for 15 minutes. Send the bot:',
+    telegramLinkCommand: '/start {code}',
+    telegramLinked: 'Telegram connected{username}',
+    telegramLinkedUser: ' (@{username})',
+    telegramLinkError: 'Could not create the code. Check that you are signed in.',
   },
   boardChat: {
     title: 'Planning',

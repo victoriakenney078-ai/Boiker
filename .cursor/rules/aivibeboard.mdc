@@ -17,6 +17,7 @@ alwaysApply: true
 - `src/components/` — BoardsPage, BoardFormModal, BoardDeleteDialog, AppShell, Board, BoardChat, TaskModal, KnowledgePanel, AiPanel, TelegramInbox, Sidebar, Header, LanguageSwitcher
 - `supabase/migrations/` — SQL для досок, `profiles` и OpenRouter RPC (см. README)
 - `supabase/functions/openrouter/` — Edge Function → OpenRouter `openai/gpt-6-luna`
+- `supabase/functions/telegram/` — webhook бота, список досок по кнопке «Мои доски»
 - `src/components/landing/` — `LandingPage`, `LandingChat`, `AuthPage` (email + пароль)
 
 Секреты: в клиенте только `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` через `import.meta.env`; не коммитить `.env`. Ключ OpenRouter — в секрете Supabase / Vault, не в браузере.
@@ -25,7 +26,7 @@ alwaysApply: true
 
 - **ИИ:** разбиение эпика в панели «ИИ-постановка» → preview → эпик в «Бэклог» + дочерние задачи (`aiBoard.createEpicOnBoard`). Вызов через Edge Function `openrouter`. **Чат на доске** (`BoardChat`, только раздел «Доска»): один текст → `decomposeGlobalTask` с именами и ролями участников → те же карточки в бэклоге без превью. Локальный fallback по строкам и эвристике ролей, если модель недоступна.
 - **Лендинг-чат:** `LandingChat`, контекст в `sessionStorage`, только для вошедших при отправке.
-- **Telegram:** inbox в IndexedDB, `ingestTelegramMessage`; без ключа бота в SPA — mock/симуляция OK.
+- **Telegram:** inbox в IndexedDB, `ingestTelegramMessage`; бот — привязка кодом из настроек, webhook Edge Function `telegram`, доски из Supabase.
 - **База знаний:** md/txt приоритет; pdf — метаданные + предупреждение если текст не извлечён.
 
 ## Не расширять без явного запроса

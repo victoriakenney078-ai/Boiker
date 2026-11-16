@@ -279,6 +279,16 @@ export const ru = {
     save: 'Сохранить',
     saved: 'Настройки сохранены',
     defaultProject: 'Демо',
+    telegramBotTitle: 'Telegram-бот',
+    telegramBotLead:
+      'Бот показывает ваши доски по кнопке «Мои доски». Сначала привяжите аккаунт кодом ниже.',
+    telegramBotHandle: '@xccxg_FJ_Bot',
+    telegramLinkGenerate: 'Код для Telegram',
+    telegramLinkPending: 'Код действует 15 минут. Отправьте боту:',
+    telegramLinkCommand: '/start {code}',
+    telegramLinked: 'Telegram подключён{username}',
+    telegramLinkedUser: ' (@{username})',
+    telegramLinkError: 'Не удалось создать код. Проверьте вход.',
   },
   boardChat: {
     title: 'Постановка',

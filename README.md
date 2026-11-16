@@ -126,7 +126,22 @@ VITE_SUPABASE_ANON_KEY=
 | Команда | Участники для назначения, ИИ и выбора в форме доски; у участника может быть **роль IT-команды** (`User.role`, IndexedDB) — отображается в списке и передаётся в чат постановки |
 | Настройки | Роль аккаунта (Supabase), имя проекта и секрет webhook (IndexedDB) |
 
-## Telegram webhook (будущее)
+## Telegram-бот
+
+Бот **@xccxg_FJ_Bot** подключён к проекту Supabase.
+
+1. Войдите в AivibeBoard → **Настройки** → **Код для Telegram**.
+2. Откройте бота в Telegram и отправьте `/start КОД` (код действует 15 минут).
+3. Нажмите кнопку **«Мои доски»** — бот пришлёт список ваших досок из Supabase (только доски владельца аккаунта).
+
+Технически: webhook → Edge Function [`supabase/functions/telegram`](./supabase/functions/telegram) (`verify_jwt: false`). Токен бота хранится в Vault (`telegram_bot_token`), не в репозитории. Миграция [`20261116170000_telegram_bot.sql`](./supabase/migrations/20261116170000_telegram_bot.sql) — таблицы `telegram_accounts`, `telegram_link_codes`.
+
+У регистрации webhook в Telegram:
+`https://<project>.supabase.co/functions/v1/telegram`
+
+Секрет `APP_ORIGIN` на Edge Function (опционально) — URL сайта в сообщениях при выборе доски.
+
+### Inbox в браузере (имитация)
 
 Контракт тела POST для `ingestTelegramMessage`:
 
@@ -144,7 +159,7 @@ VITE_SUPABASE_ANON_KEY=
 ## Roadmap
 
 - Совместный доступ к доскам (сейчас `memberIds` — только отображение; RLS — один владелец)
-- Реальный Telegram Bot API + webhook
+- Расширение бота (создание задач из чата, inbox в Supabase)
 - RAG / embeddings для базы знаний
 - Фильтры доски, экспорт
 - Перенос команды и базы знаний в Supabase (опционально)
