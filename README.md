@@ -22,9 +22,12 @@
 SQL-миграции в репозитории:
 
 - [supabase/migrations/20261109170318_create_boards_kanban.sql](./supabase/migrations/20261109170318_create_boards_kanban.sql) — доски, колонки, задачи;
-- [supabase/migrations/20261116133000_create_profiles_role.sql](./supabase/migrations/20261116133000_create_profiles_role.sql) — роль аккаунта.
+- [supabase/migrations/20261116133000_create_profiles_role.sql](./supabase/migrations/20261116133000_create_profiles_role.sql) — роль аккаунта;
+- [supabase/migrations/20261116143000_openrouter_api_key_rpc.sql](./supabase/migrations/20261116143000_openrouter_api_key_rpc.sql) — RPC чтения ключа OpenRouter из Vault (только `service_role`).
 
-На новом проекте Supabase выполните оба скрипта в SQL Editor (или через Supabase CLI). Включён **RLS**: доски читает и меняет только владелец; строку `profiles` — только её пользователь (`id = auth.uid()`). Удаление доски каскадом снимает колонки и задачи, удаление пользователя Auth — строку профиля.
+Edge Function **openrouter** — [supabase/functions/openrouter/index.ts](./supabase/functions/openrouter/index.ts). Деплой: Supabase Dashboard → Edge Functions или `supabase functions deploy openrouter`. Секрет: переменная окружения `OPENROUTER_API_KEY` **или** запись Vault с именем `openrouter_api_key` (читается через RPC выше). `verify_jwt: true` — вызов только с сессией пользователя.
+
+На новом проекте Supabase выполните миграции в SQL Editor (или через Supabase CLI) и задеплойте функцию `openrouter`. Включён **RLS**: доски читает и меняет только владелец; строку `profiles` — только её пользователь (`id = auth.uid()`). Удаление доски каскадом снимает колонки и задачи, удаление пользователя Auth — строку профиля.
 
 `profiles.role` — одна роль IT-команды: продакт- и проект-менеджер, бизнес-аналитик, Scrum-мастер, техлид, frontend / backend / fullstack / mobile, QA, DevOps, UX/UI, дата-аналитик, системный администратор. Список id — `src/lib/itRoles.ts`.
 
@@ -61,8 +64,6 @@ npm run preview
 Скопируйте `.env.example` в `.env` (файл `.env` в git не попадает):
 
 ```env
-VITE_OPENAI_API_KEY=
-VITE_OPENAI_MODEL=gpt-4o-mini
 VITE_SUPABASE_URL=
 VITE_SUPABASE_ANON_KEY=
 ```
@@ -71,12 +72,10 @@ VITE_SUPABASE_ANON_KEY=
 |------------|------------|
 | `VITE_SUPABASE_URL` | URL проекта Supabase. Обязателен для входа и досок. |
 | `VITE_SUPABASE_ANON_KEY` | Публичный anon-ключ. Обязателен. Не путайте с `service_role`. |
-| `VITE_OPENAI_API_KEY` | Ключ для «ИИ-постановки». Пустое значение включает локальный fallback. |
-| `VITE_OPENAI_MODEL` | Модель OpenAI. По умолчанию в примере — `gpt-4o-mini`. |
 
-Без ключа OpenAI раздел «ИИ-постановка» разбивает текст локально: по строкам и пунктам.
+«ИИ-постановка» вызывает Edge Function `openrouter` (`supabase/functions/openrouter`). Функция ходит в OpenRouter, модель `openai/gpt-6-luna`. Ключ читается из секрета `OPENROUTER_API_KEY` или из Vault `openrouter_api_key`, не из `.env` и не из браузера. Вызов доступен только вошедшему пользователю. Если функция или модель недоступны, эпик разбивается локально по строкам.
 
-**Важно:** значения `VITE_*` попадают в бандл браузера. Anon-ключ Supabase для этого и рассчитан (доступ ограничивают политики RLS). Ключ OpenAI в продакшене лучше прятать за прокси (см. Roadmap).
+**Важно:** значения `VITE_*` попадают в бандл браузера. Anon-ключ Supabase для этого и рассчитан (доступ ограничивают политики RLS).
 
 ### Supabase Auth
 
@@ -94,10 +93,10 @@ VITE_SUPABASE_ANON_KEY=
 
 ## Экраны
 
-1. **Лендинг** (`LandingPage`) — возможности, шаги и призыв к действию. Если сессия уже есть, кнопки ведут в приложение («Открыть доску»), иначе на форму входа.
+1. **Лендинг** (`LandingPage`) — возможности, шаги и призыв к действию. Если сессия уже есть, кнопки ведут в приложение («Открыть доску»), иначе на форму входа. Внизу — **живой чат** (`LandingChat`): диалог с OpenRouter, история в `sessionStorage` (`aivibeboard.landingChat`), отправка только после входа.
 2. **Вход и регистрация** (`AuthPage`) — переключение вкладок на одной форме. На регистрации обязателен список ролей IT-команды. Ошибки Supabase показываются на выбранном языке.
 3. **Мои доски** (`BoardsPage`) — список досок, создание/редактирование в диалоге (`BoardFormModal`), удаление (`BoardDeleteDialog`), открытие канбана.
-4. **Канбан** (`AppShell` + `Board`) — рабочее приложение выбранной доски. В шапке ссылка «← Мои доски», кнопка «Сайт» возвращает на лендинг без выхода из аккаунта.
+4. **Канбан** (`AppShell` + `Board`) — рабочее приложение выбранной доски. В шапке ссылка «← Мои доски», кнопка «Сайт» возвращает на лендинг без выхода из аккаунта. На разделе **Доска** — всплывающий **чат постановки** (`BoardChat`): одно сообщение с крупной задачей → ИИ разбивает на подзадачи и назначает участникам по роли → эпик и карточки в «Бэклог».
 
 Сессию (лендинг / вход / приложение) держит `useAppSession`. `App.tsx` переключает экраны.
 
@@ -106,10 +105,12 @@ VITE_SUPABASE_ANON_KEY=
 | Путь | Зачем |
 |------|--------|
 | `src/App.tsx` | Переключение лендинг / вход / приложение |
-| `src/components/AppShell.tsx` | Список досок vs канбан, сайдбар, модалки |
+| `src/components/AppShell.tsx` | Список досок vs канбан, сайдбар, модалки, чат постановки на доске |
+| `src/components/BoardChat.tsx` | Всплывающий чат: глобальная задача → эпик в бэклоге |
+| `src/components/landing/LandingChat.tsx` | Чат на лендинге с сохранением контекста |
 | `src/components/BoardsPage.tsx` | «Мои доски» |
 | `src/hooks/` | Данные (Supabase + IndexedDB), сессия, DnD, ИИ |
-| `src/services/` | `boardRemote`, `profileRemote`, `storage`, OpenAI, Telegram, `seed` |
+| `src/services/` | `boardRemote`, `profileRemote`, `storage`, OpenRouter через Edge Function, Telegram, `seed` |
 | `src/i18n/` | Словари RU/EN/HE и переключатель языка |
 | `src/lib/itRoles.ts` | Id ролей IT-команды и ключи переводов |
 | `src/lib/isoNow.ts` | Общая метка времени |
@@ -118,11 +119,11 @@ VITE_SUPABASE_ANON_KEY=
 
 | Раздел | Описание |
 |--------|----------|
-| Доска | Канбан, drag-and-drop, CRUD задач и колонок (только активная доска). На карточке можно назначить участника доски и удалить задачу; в карточке задачи — сменить колонку. Если у доски заданы участники, исполнитель выбирается только из них |
+| Доска | Канбан, drag-and-drop, CRUD задач и колонок (только активная доска). **Чат постановки** (правый нижний угол): текст крупной задачи → OpenRouter + роли участников → `createEpicOnBoard` в «Бэклог». На карточке можно назначить участника доски и удалить задачу; в карточке задачи — сменить колонку. Если у доски заданы участники, исполнитель выбирается только из них |
 | База знаний | Загрузка `.md`, `.txt`, `.pdf` (PDF — ограниченный текст) |
-| ИИ-постановка | Эпик → подзадачи с исполнителями; контекст из выбранных документов |
+| ИИ-постановка | Эпик → подзадачи с исполнителями через OpenRouter; контекст из выбранных документов. Без ответа модели — локальный разбор |
 | Telegram | Inbox, симуляция сообщений, создание задач на активной доске |
-| Команда | Участники для назначения, ИИ и выбора в форме доски |
+| Команда | Участники для назначения, ИИ и выбора в форме доски; у участника может быть **роль IT-команды** (`User.role`, IndexedDB) — отображается в списке и передаётся в чат постановки |
 | Настройки | Роль аккаунта (Supabase), имя проекта и секрет webhook (IndexedDB) |
 
 ## Telegram webhook (будущее)
@@ -143,7 +144,6 @@ VITE_SUPABASE_ANON_KEY=
 ## Roadmap
 
 - Совместный доступ к доскам (сейчас `memberIds` — только отображение; RLS — один владелец)
-- Backend-прокси для OpenAI и скрытия ключей
 - Реальный Telegram Bot API + webhook
 - RAG / embeddings для базы знаний
 - Фильтры доски, экспорт

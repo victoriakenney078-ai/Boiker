@@ -91,17 +91,7 @@ export function SettingsPanel() {
             placeholder={t('settings.telegramPlaceholder')}
           />
         </label>
-        <p className={styles.muted}>
-          {t('settings.openaiHintBefore')} <code>.env</code> {t('settings.openaiHintMid')}{' '}
-          <code>VITE_OPENAI_API_KEY</code>. {t('settings.openaiHintAfter')}{' '}
-          <code>npm run dev</code>.
-        </p>
-        <p className={styles.muted}>
-          {t('settings.model')} <code>{import.meta.env.VITE_OPENAI_MODEL ?? 'gpt-4o-mini'}</code>
-          {' · '}
-          {t('settings.key')}{' '}
-          {import.meta.env.VITE_OPENAI_API_KEY ? t('settings.keySet') : t('settings.keyMissing')}
-        </p>
+        <p className={styles.muted}>{t('settings.aiServer')}</p>
         {error ? (
           <p className={styles.error} role="alert">
             {error}

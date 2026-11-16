@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { User } from '../types';
+import { IT_ROLE_KEYS } from '../lib/itRoles';
 import { deleteUser, putUser } from '../services/storage';
 import { useAppData } from '../hooks/useAppData';
 import { useI18n } from '../i18n';
@@ -74,6 +75,7 @@ export function TeamPanel() {
             </span>
             <div className={styles.listBody}>
               <strong>{u.name}</strong>
+              {u.role ? <span className={styles.muted}>{t(IT_ROLE_KEYS[u.role])}</span> : null}
               {u.telegramUsername && (
                 <span className={styles.muted}>@{u.telegramUsername}</span>
               )}

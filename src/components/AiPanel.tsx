@@ -56,12 +56,10 @@ export function AiPanel({ selectedDocIds }: Props) {
     window.alert(t('ai.createdAlert'));
   }
 
-  const hasKey = Boolean(import.meta.env.VITE_OPENAI_API_KEY);
-
   return (
     <div className={styles.panel}>
       <h2 className={styles.title}>{t('ai.title')}</h2>
-      <p className={styles.muted}>{hasKey ? t('ai.hasKey') : t('ai.noKey')}</p>
+      <p className={styles.muted}>{t('ai.hasKey')}</p>
       {selectedDocIds.length > 0 && (
         <p className={styles.hint}>{t('ai.contextDocs', { n: selectedDocIds.length })}</p>
       )}

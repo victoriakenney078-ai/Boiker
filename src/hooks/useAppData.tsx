@@ -22,7 +22,7 @@ import {
   getAllTasks,
   migrateBoardsFromIdbIfNeeded,
 } from '../services/boardRemote';
-import { seedIfEmpty, seedRemoteDemoIfNeeded } from '../services/seed';
+import { ensureTestTeam, seedIfEmpty, seedRemoteDemoIfNeeded } from '../services/seed';
 import type {
   Board,
   Column,
@@ -65,6 +65,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
   const refresh = useCallback(async () => {
     await seedIfEmpty();
+    await ensureTestTeam();
     await migrateBoardsFromIdbIfNeeded(
       await getLocalBoards(),
       await getLocalColumns(),

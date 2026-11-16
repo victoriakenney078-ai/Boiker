@@ -1,3 +1,5 @@
+import type { ItRole } from '../lib/itRoles';
+
 export type Priority = 'low' | 'medium' | 'high' | 'critical';
 export type TaskSource = 'manual' | 'ai' | 'telegram';
 
@@ -6,6 +8,7 @@ export interface User {
   name: string;
   avatarColor?: string;
   telegramUsername?: string;
+  role?: ItRole;
 }
 
 export interface Board {

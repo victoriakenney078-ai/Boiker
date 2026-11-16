@@ -188,10 +188,12 @@ README.md         # как запустить, env, как подключить 
 
 Поведение `services/ai.ts`:
 
-1. Если задан `VITE_OPENAI_API_KEY` — запрос к OpenAI Chat Completions (модель из env или `gpt-4o-mini`), system prompt: ты PM, разбей эпик на 3–12 конкретных задач, для каждой предложи `priority` и `assignee` по имени из переданного JSON списка users; ответ **строго JSON** по схеме `AiDecompositionDraft.suggestedTasks`.
-2. Если ключа нет — **локальный fallback**: эвристика (разбить описание по строкам/нумерованным пунктам/«;»), round-robin назначение исполнителей, priority `medium`.
+1. Для вошедшего пользователя — `supabase.functions.invoke('openrouter')` (Edge Function, модель OpenRouter `openai/gpt-6-luna`, ключ на стороне Supabase, не в SPA). System prompt: PM, 3–12 задач, JSON `{ tasks: [{ title, description, priority, assigneeName }] }`, имена из списка команды.
+2. Если функция или парсинг JSON недоступны — **локальный fallback**: эвристика по строкам; назначение по ключевым словам роли участника или round-robin.
 
-После генерации — превью таблицы предложенных задач с возможностью править title/description/assignee/priority **до** кнопки **«Создать на доске»**:
+**Чат постановки на доске** (`BoardChat` в `AppShell`, только при открытой доске и разделе «Доска»): пользователь пишет одну крупную задачу → `decomposeGlobalTask` передаёт в модель участников с полями `name` и `role` (`ItRole`) → без превью сразу `createEpicOnBoard` в «Бэклог»; в чате краткий отчёт «сколько задач и кому».
+
+После генерации в панели «ИИ-постановка» — превью таблицы предложенных задач с возможностью править title/description/assignee/priority **до** кнопки **«Создать на доске»**:
 
 1. Сначала создай **одну родительскую карточку-эпик** в «Бэклог» (title = название эпика, description = описание, `source: 'ai'`, метка/label «Эпик»).
 2. Затем создай дочерние задачи в «Бэклог» с `source: 'ai'` и `parentTaskId` = id эпика.
@@ -221,9 +223,14 @@ interface TelegramWebhookPayload {
 
 #### Настройки
 
+- Роль аккаунта (Supabase `profiles`).
 - Имя проекта.
-- Подсказка: ключ OpenAI задаётся в `.env` как `VITE_OPENAI_API_KEY`.
+- Подсказка: ИИ идёт через Edge Function OpenRouter на сервере.
 - Telegram secret для webhook (хранить в settings store).
+
+#### Лендинг
+
+- Маркетинговые секции + **LandingChat** (история в `sessionStorage`, OpenRouter, вход обязателен для отправки).
 
 ---
 
@@ -244,9 +251,11 @@ interface TelegramWebhookPayload {
 - `.env.example`:
 
 ```env
-VITE_OPENAI_API_KEY=
-VITE_OPENAI_MODEL=gpt-4o-mini
+VITE_SUPABASE_URL=
+VITE_SUPABASE_ANON_KEY=
 ```
+
+- Edge Function `supabase/functions/openrouter`, миграция RPC для Vault (см. README).
 
 ---
 
@@ -255,7 +264,7 @@ VITE_OPENAI_MODEL=gpt-4o-mini
 - [ ] Доска с DnD, CRUD задач и колонок, данные переживают перезагрузку страницы.
 - [ ] Команда: минимум 2 пользователя, назначение на карточку.
 - [ ] База знаний: загрузка md/txt, список, просмотр, выбор для ИИ.
-- [ ] ИИ-постановка: fallback без ключа; с ключом — API; после подтверждения — эпик + дочерние задачи в «Бэклог» с `parentTaskId`.
+- [ ] ИИ-постановка: fallback без сервера; с OpenRouter — Edge Function; после подтверждения — эпик + дочерние задачи в «Бэклог» с `parentTaskId`. Чат на доске создаёт те же карточки без превью.
 - [ ] В header видно **AivibeBoard** и имя проекта; title вкладки — AivibeBoard.
 - [ ] Telegram inbox: mock + симуляция + создание задачи из сообщения.
 - [ ] UI на русском, аккуратный современный вид.
@@ -283,4 +292,4 @@ VITE_OPENAI_MODEL=gpt-4o-mini
 1. Создай папку проекта (или открой пустую).
 2. В Cursor: **New Agent Chat** → вставь блок между «НАЧАЛО ПРОМПТА» и «КОНЕЦ ПРОМПТА».
 3. Дождись генерации, затем `npm install` и `npm run dev`.
-4. Для ИИ-разбиения создай `.env` из `.env.example` и укажи `VITE_OPENAI_API_KEY`.
+4. Для ИИ задеплойте Edge Function `openrouter` и положите ключ OpenRouter в секрет проекта Supabase (см. README).

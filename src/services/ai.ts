@@ -1,11 +1,55 @@
+import { isItRole, type ItRole } from '../lib/itRoles';
 import type { AiDecompositionDraft, Priority, SuggestedTask, User } from '../types';
-import { tStatic } from '../i18n';
 import { getKnowledgeText } from './storage';
+import { supabase } from './supabase';
 
 const SYSTEM_PROMPT = `You are an experienced project manager. Break the epic into 3-12 concrete actionable tasks.
 Return ONLY valid JSON with this shape:
 {"tasks":[{"title":"string","description":"string","priority":"low|medium|high|critical","assigneeName":"string or empty"}]}
 Use assignee names exactly from the provided team list when possible. Priorities must be one of: low, medium, high, critical.`;
+
+const ROLE_SYSTEM_PROMPT = `You are an experienced project manager. Break the epic into 3-12 concrete actionable tasks.
+Assign each task to the team member whose role best fits the work.
+Return ONLY valid JSON with this shape:
+{"tasks":[{"title":"string","description":"string","priority":"low|medium|high|critical","assigneeName":"string"}]}
+Copy assigneeName exactly from the team list. Priorities must be one of: low, medium, high, critical.`;
+
+const ROLE_HINTS: Record<ItRole, string[]> = {
+  productManager: ['продукт', 'roadmap', 'приоритет', 'product', 'vision'],
+  projectManager: ['срок', 'план', 'координац', 'project', 'milestone'],
+  businessAnalyst: ['требован', 'анализ', 'спецификац', 'бизнес', 'requirement'],
+  scrumMaster: ['спринт', 'ретро', 'стендап', 'scrum', 'agile'],
+  techLead: ['архитектур', 'ревью', 'техлид', 'architecture'],
+  frontend: ['интерфейс', 'вёрст', 'верст', 'экран', 'кнопк', 'frontend', 'react', 'ui'],
+  backend: ['api', 'сервер', 'база', 'backend', 'endpoint'],
+  fullstack: ['fullstack', 'полный цикл'],
+  mobile: ['мобил', 'ios', 'android', 'mobile'],
+  qa: ['тест', 'баг', 'провер', 'qa'],
+  devops: ['деплой', 'ci', 'docker', 'инфра', 'devops'],
+  designer: ['дизайн', 'макет', 'ux', 'прототип'],
+  dataAnalyst: ['данн', 'метрик', 'отчёт', 'отчет', 'аналитик'],
+  sysadmin: ['доступ', 'админ', 'учетн', 'учётн', 'sysadmin'],
+};
+
+function assigneeForText(text: string, users: User[], index: number): string | null {
+  const hay = text.toLowerCase();
+  const matched = users.find(
+    (user) => user.role && ROLE_HINTS[user.role].some((hint) => hay.includes(hint)),
+  );
+  if (matched) return matched.id;
+  return users.length ? users[index % users.length]!.id : null;
+}
+
+function resolveAssignee(name: string, text: string, users: User[], index: number): string | null {
+  const normalized = name.trim().toLowerCase();
+  const byName = users.find((user) => user.name.toLowerCase() === normalized);
+  if (byName) return byName.id;
+  if (isItRole(name.trim())) {
+    const byRole = users.find((user) => user.role === name.trim());
+    if (byRole) return byRole.id;
+  }
+  return assigneeForText(text, users, index);
+}
 
 function uid(): string {
   return crypto.randomUUID();
@@ -36,7 +80,7 @@ function fallbackDecompose(
     return {
       title: title || `Подзадача ${i + 1}`,
       description: chunk,
-      suggestedAssigneeId: users.length ? users[i % users.length]!.id : null,
+      suggestedAssigneeId: assigneeForText(chunk, users, i),
       priority: 'medium' as Priority,
     };
   });
@@ -60,6 +104,53 @@ async function buildKnowledgeChunks(docIds: string[]): Promise<string[]> {
   return chunks;
 }
 
+interface CompletionBody {
+  choices?: { message?: { content?: string } }[];
+}
+
+async function requestDecomposition(
+  userPayload: string,
+  users: User[],
+  systemPrompt = SYSTEM_PROMPT,
+): Promise<SuggestedTask[] | null> {
+  const { data: sessionData } = await supabase.auth.getSession();
+  if (!sessionData.session) return null;
+
+  const { data, error } = await supabase.functions.invoke('openrouter', {
+    body: {
+      temperature: 0.4,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPayload },
+      ],
+    },
+  });
+  if (error || !data) return null;
+
+  const content = (data as CompletionBody).choices?.[0]?.message?.content;
+  if (!content) return null;
+
+  let parsed: { tasks?: OpenAiTaskRow[] };
+  try {
+    const fenced = content.match(/```(?:json)?\s*([\s\S]*?)```/);
+    parsed = JSON.parse((fenced?.[1] ?? content).trim()) as { tasks?: OpenAiTaskRow[] };
+  } catch {
+    return null;
+  }
+
+  const suggestedTasks = (parsed.tasks ?? []).map((row, index) => {
+    const text = `${row.title ?? ''} ${row.description ?? ''}`;
+    return {
+      title: row.title || 'Без названия',
+      description: row.description || '',
+      suggestedAssigneeId: resolveAssignee(row.assigneeName ?? '', text, users, index),
+      priority: parsePriority(row.priority ?? 'medium'),
+    };
+  });
+
+  return suggestedTasks.length > 0 ? suggestedTasks : null;
+}
+
 interface OpenAiTaskRow {
   title: string;
   description: string;
@@ -76,73 +167,15 @@ export async function decomposeEpic(params: {
   const { epicTitle, epicDescription, users, knowledgeDocIds } = params;
   const knowledgeChunks = await buildKnowledgeChunks(knowledgeDocIds);
 
-  const apiKey = import.meta.env.VITE_OPENAI_API_KEY as string | undefined;
-  let suggestedTasks: SuggestedTask[];
-
-  if (apiKey?.trim()) {
-    const model = (import.meta.env.VITE_OPENAI_MODEL as string) || 'gpt-4o-mini';
-    const userPayload = JSON.stringify({
-      epicTitle,
-      epicDescription,
-      team: users.map((u) => u.name),
-      knowledge: knowledgeChunks.join('\n---\n'),
-    });
-
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model,
-        temperature: 0.4,
-        response_format: { type: 'json_object' },
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
-          { role: 'user', content: userPayload },
-        ],
-      }),
-    });
-
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(
-        tStatic('ai.errorOpenai', { status: res.status, detail: errText.slice(0, 200) }),
-      );
-    }
-
-    const data = (await res.json()) as {
-      choices?: { message?: { content?: string } }[];
-    };
-    const content = data.choices?.[0]?.message?.content;
-    if (!content) throw new Error(tStatic('ai.errorEmpty'));
-
-    let parsed: { tasks?: OpenAiTaskRow[] };
-    try {
-      parsed = JSON.parse(content) as { tasks?: OpenAiTaskRow[] };
-    } catch {
-      throw new Error(tStatic('ai.errorJson'));
-    }
-
-    const rows = parsed.tasks ?? [];
-    suggestedTasks = rows.map((row) => {
-      const name = (row.assigneeName ?? '').trim().toLowerCase();
-      const user = users.find((u) => u.name.toLowerCase() === name);
-      return {
-        title: row.title || 'Без названия',
-        description: row.description || '',
-        suggestedAssigneeId: user?.id ?? null,
-        priority: parsePriority(row.priority ?? 'medium'),
-      };
-    });
-
-    if (suggestedTasks.length === 0) {
-      suggestedTasks = fallbackDecompose(epicTitle, epicDescription, users);
-    }
-  } else {
-    suggestedTasks = fallbackDecompose(epicTitle, epicDescription, users);
-  }
+  const userPayload = JSON.stringify({
+    epicTitle,
+    epicDescription,
+    team: users.map((u) => u.name),
+    knowledge: knowledgeChunks.join('\n---\n'),
+  });
+  const suggestedTasks =
+    (await requestDecomposition(userPayload, users)) ??
+    fallbackDecompose(epicTitle, epicDescription, users);
 
   return {
     id: uid(),
@@ -150,6 +183,28 @@ export async function decomposeEpic(params: {
     epicDescription,
     suggestedTasks,
     knowledgeDocIds,
+    createdAt: new Date().toISOString(),
+  };
+}
+
+export async function decomposeGlobalTask(text: string, users: User[]): Promise<AiDecompositionDraft> {
+  const trimmed = text.trim();
+  const firstLine = trimmed.split('\n')[0] ?? trimmed;
+  const epicTitle = firstLine.length > 80 ? `${firstLine.slice(0, 77)}…` : firstLine;
+  const userPayload = JSON.stringify({
+    epic: trimmed,
+    team: users.map((user) => ({ name: user.name, role: user.role ?? null })),
+  });
+  const suggestedTasks =
+    (await requestDecomposition(userPayload, users, ROLE_SYSTEM_PROMPT)) ??
+    fallbackDecompose(epicTitle, trimmed, users);
+
+  return {
+    id: uid(),
+    epicTitle: epicTitle || 'Задача',
+    epicDescription: trimmed,
+    suggestedTasks,
+    knowledgeDocIds: [],
     createdAt: new Date().toISOString(),
   };
 }

@@ -1,5 +1,6 @@
 import { useI18n } from '../../i18n';
 import { LanguageSwitcher } from '../LanguageSwitcher';
+import { LandingChat } from './LandingChat';
 import styles from './LandingPage.module.css';
 
 interface Props {
@@ -168,6 +169,7 @@ export function LandingPage({ signedIn, onOpenAuth, onOpenApp }: Props) {
         <span className={styles.footerBrand}>AivibeBoard</span>
         <p>{t('landing.footerNote')}</p>
       </footer>
+      <LandingChat signedIn={signedIn} onNeedAuth={onOpenAuth} />
     </div>
   );
 }

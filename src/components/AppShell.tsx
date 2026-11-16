@@ -13,6 +13,7 @@ import { AiPanel } from './AiPanel';
 import { TelegramInbox } from './TelegramInbox';
 import { TeamPanel } from './TeamPanel';
 import { SettingsPanel } from './SettingsPanel';
+import { BoardChat } from './BoardChat';
 import styles from '../App.module.css';
 
 interface Props {
@@ -111,6 +112,13 @@ export function AppShell({ onBackToLanding, onSignOut }: Props) {
         <Sidebar active={section} onChange={setSection} telegramUnread={telegramUnread} />
         <main className={styles.main}>
           {section === 'board' && <Board search={search} onOpenTask={openTask} />}
+          {section === 'board' ? (
+            <BoardChat
+              boardId={activeBoard.id}
+              members={boardMembers}
+              onCreated={refresh}
+            />
+          ) : null}
           {section === 'knowledge' && (
             <KnowledgePanel selectedForAi={aiDocIds} onToggleAiDoc={toggleAiDoc} />
           )}
