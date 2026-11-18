@@ -11,7 +11,8 @@
 | Сессия (вход) | Supabase Auth | Между устройствами |
 | Роль аккаунта | Supabase Postgres (`profiles`) и `user_metadata.role` | В облаке, только своя строка |
 | Доски, колонки, задачи | Supabase Postgres (`boards`, `board_columns`, `board_tasks`) | В облаке под `owner_id = auth.uid()` |
-| Команда, знания, Telegram, настройки проекта | IndexedDB (`src/services/storage.ts`) | Только этот браузер |
+| Команда (имена и роли) | IndexedDB и копия в Postgres (`team_members`) | Копия обновляется при загрузке приложения, чтобы бот мог назначать задачи |
+| База знаний, inbox Telegram, настройки проекта | IndexedDB (`src/services/storage.ts`) | Только этот браузер |
 
 `memberIds` на доске — это id участников из **локальной команды** (метаданные на карточке; отдельных аккаунтов у них нет).
 
@@ -23,7 +24,10 @@ SQL-миграции в репозитории:
 
 - [supabase/migrations/20261109170318_create_boards_kanban.sql](./supabase/migrations/20261109170318_create_boards_kanban.sql) — доски, колонки, задачи;
 - [supabase/migrations/20261116133000_create_profiles_role.sql](./supabase/migrations/20261116133000_create_profiles_role.sql) — роль аккаунта;
-- [supabase/migrations/20261116143000_openrouter_api_key_rpc.sql](./supabase/migrations/20261116143000_openrouter_api_key_rpc.sql) — RPC чтения ключа OpenRouter из Vault (только `service_role`).
+- [supabase/migrations/20261116143000_openrouter_api_key_rpc.sql](./supabase/migrations/20261116143000_openrouter_api_key_rpc.sql) — RPC чтения ключа OpenRouter из Vault (только `service_role`);
+- [supabase/migrations/20261116170000_telegram_bot.sql](./supabase/migrations/20261116170000_telegram_bot.sql) — привязка Telegram и одноразовые коды;
+- [supabase/migrations/20261116193000_team_members_telegram_session.sql](./supabase/migrations/20261116193000_team_members_telegram_session.sql) — копия команды и сессия бота «жду задачу»;
+- [supabase/migrations/20261116200000_team_members_role.sql](./supabase/migrations/20261116200000_team_members_role.sql) — колонка `role` и ключ `(owner_id, id)`, чтобы одна и та же локальная команда могла быть у разных аккаунтов.
 
 Edge Function **openrouter** — [supabase/functions/openrouter/index.ts](./supabase/functions/openrouter/index.ts). Деплой: Supabase Dashboard → Edge Functions или `supabase functions deploy openrouter`. Секрет: переменная окружения `OPENROUTER_API_KEY` **или** запись Vault с именем `openrouter_api_key` (читается через RPC выше). `verify_jwt: true` — вызов только с сессией пользователя.
 
@@ -110,7 +114,7 @@ VITE_SUPABASE_ANON_KEY=
 | `src/components/landing/LandingChat.tsx` | Чат на лендинге с сохранением контекста |
 | `src/components/BoardsPage.tsx` | «Мои доски» |
 | `src/hooks/` | Данные (Supabase + IndexedDB), сессия, DnD, ИИ |
-| `src/services/` | `boardRemote`, `profileRemote`, `storage`, OpenRouter через Edge Function, Telegram, `seed` |
+| `src/services/` | `boardRemote`, `profileRemote`, `teamRemote`, `storage`, OpenRouter через Edge Function, Telegram, `seed` |
 | `src/i18n/` | Словари RU/EN/HE и переключатель языка |
 | `src/lib/itRoles.ts` | Id ролей IT-команды и ключи переводов |
 | `src/lib/isoNow.ts` | Общая метка времени |
@@ -122,7 +126,7 @@ VITE_SUPABASE_ANON_KEY=
 | Доска | Канбан, drag-and-drop, CRUD задач и колонок (только активная доска). **Чат постановки** (правый нижний угол): текст крупной задачи → OpenRouter + роли участников → `createEpicOnBoard` в «Бэклог». На карточке можно назначить участника доски и удалить задачу; в карточке задачи — сменить колонку. Если у доски заданы участники, исполнитель выбирается только из них |
 | База знаний | Загрузка `.md`, `.txt`, `.pdf` (PDF — ограниченный текст) |
 | ИИ-постановка | Эпик → подзадачи с исполнителями через OpenRouter; контекст из выбранных документов. Без ответа модели — локальный разбор |
-| Telegram | Inbox, симуляция сообщений, создание задач на активной доске |
+| Telegram | Inbox и симуляция в браузере. Живой бот — в разделе ниже |
 | Команда | Участники для назначения, ИИ и выбора в форме доски; у участника может быть **роль IT-команды** (`User.role`, IndexedDB) — отображается в списке и передаётся в чат постановки |
 | Настройки | Роль аккаунта (Supabase), имя проекта и секрет webhook (IndexedDB) |
 
@@ -132,9 +136,14 @@ VITE_SUPABASE_ANON_KEY=
 
 1. Войдите в AivibeBoard → **Настройки** → **Код для Telegram**.
 2. Откройте бота в Telegram и отправьте `/start КОД` (код действует 15 минут).
-3. Нажмите кнопку **«Мои доски»** — бот пришлёт список ваших досок из Supabase (только доски владельца аккаунта).
+3. Нажмите кнопку **«Мои доски»** — бот пришлёт список досок владельца. Нажмите доску и **следующим сообщением** опишите крупную задачу.
+4. Бот вызывает OpenRouter (тот же ключ Vault `openrouter_api_key`, модель `openai/gpt-6-luna`) и создаёт в «Бэклоге» эпик без исполнителя и подзадачи с `assignee_id`. В чат приходит список «название — имя». Если модель недоступна, текст режется локально и назначается по роли.
 
-Технически: webhook → Edge Function [`supabase/functions/telegram`](./supabase/functions/telegram) (`verify_jwt: false`). Токен бота хранится в Vault (`telegram_bot_token`), не в репозитории. Миграция [`20261116170000_telegram_bot.sql`](./supabase/migrations/20261116170000_telegram_bot.sql) — таблицы `telegram_accounts`, `telegram_link_codes`.
+Участники берутся из `team_members` этого аккаунта и пересекаются с `boards.member_ids`. Если у доски список участников пуст, используются все люди аккаунта. Копия пишется при загрузке приложения (`src/services/teamRemote.ts`): зайдите на сайт под тем же аккаунтом, что привязан к боту, и дождитесь «Мои доски». Ключ строки — `(owner_id, id)`, поле `role` обязательно для назначения.
+
+Пока бот ждёт текст, выбор записан в `telegram_sessions` (`mode = awaiting_task`). «Мои доски» и `/start` задачей не считаются.
+
+Технически: webhook → Edge Function [`supabase/functions/telegram`](./supabase/functions/telegram) (`verify_jwt: false`). Токен бота хранится в Vault (`telegram_bot_token`), не в репозитории.
 
 У регистрации webhook в Telegram:
 `https://<project>.supabase.co/functions/v1/telegram`
@@ -159,10 +168,10 @@ VITE_SUPABASE_ANON_KEY=
 ## Roadmap
 
 - Совместный доступ к доскам (сейчас `memberIds` — только отображение; RLS — один владелец)
-- Расширение бота (создание задач из чата, inbox в Supabase)
+- Inbox бота в Supabase (сейчас входящие в браузере — IndexedDB)
 - RAG / embeddings для базы знаний
 - Фильтры доски, экспорт
-- Перенос команды и базы знаний в Supabase (опционально)
+- База знаний в Supabase (команда для бота уже копируется в `team_members`; источник имён по-прежнему IndexedDB)
 
 ## Промпт для доработок
 

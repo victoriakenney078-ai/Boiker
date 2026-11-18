@@ -26,7 +26,7 @@ alwaysApply: true
 
 - **ИИ:** разбиение эпика в панели «ИИ-постановка» → preview → эпик в «Бэклог» + дочерние задачи (`aiBoard.createEpicOnBoard`). Вызов через Edge Function `openrouter`. **Чат на доске** (`BoardChat`, только раздел «Доска»): один текст → `decomposeGlobalTask` с именами и ролями участников → те же карточки в бэклоге без превью. Локальный fallback по строкам и эвристике ролей, если модель недоступна.
 - **Лендинг-чат:** `LandingChat`, контекст в `sessionStorage`, только для вошедших при отправке.
-- **Telegram:** inbox в IndexedDB, `ingestTelegramMessage`; бот — привязка кодом из настроек, webhook Edge Function `telegram`, доски из Supabase.
+- **Telegram:** inbox в IndexedDB, `ingestTelegramMessage`; бот — привязка кодом из настроек, webhook Edge Function `telegram`. Кнопка «Мои доски», затем текст задачи: OpenRouter и карточки в «Бэклоге» с назначением. Команда для бота копируется в `team_members` при загрузке приложения.
 - **База знаний:** md/txt приоритет; pdf — метаданные + предупреждение если текст не извлечён.
 
 ## Не расширять без явного запроса

@@ -23,6 +23,7 @@ import {
   migrateBoardsFromIdbIfNeeded,
 } from '../services/boardRemote';
 import { ensureTestTeam, seedIfEmpty, seedRemoteDemoIfNeeded } from '../services/seed';
+import { syncTeamMembers } from '../services/teamRemote';
 import type {
   Board,
   Column,
@@ -91,6 +92,11 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       ...s,
       openAiApiKeyConfigured: Boolean(import.meta.env.VITE_OPENAI_API_KEY),
     });
+    try {
+      await syncTeamMembers(u);
+    } catch {
+      /* таблица ещё не применена или нет сети — доски продолжают работать */
+    }
   }, []);
 
   useEffect(() => {
